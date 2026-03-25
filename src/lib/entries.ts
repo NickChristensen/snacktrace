@@ -22,17 +22,32 @@ export async function getEntriesForDate(db: Kysely<DatabaseSchema>, date: string
     .orderBy('mealTypeID')
     .execute()
 
-  return rows.map((r) => ({
-    entryID: r.entryID,
-    mealTypeID: r.mealTypeID,
-    name: r.name,
-    calories: r.calories,
-    quantity: r.quantity,
-    baseAmount: r.baseAmount,
-    baseUnit: r.baseUnit,
-    brandOwner: r.brandOwner ?? undefined,
-    nutrients: parseNutrients(r.nutrients),
-  }))
+  return rows.map((r) => {
+    const raw = parseNutrients(r.nutrients)
+    // nutrients JSON is per baseAmount — scale to actual quantity consumed.
+    // For zero-calorie entries (e.g. caffeine capsules), fall back to quantity/baseAmount.
+    const scale =
+      raw.calories > 0
+        ? r.calories / raw.calories
+        : r.baseAmount > 0
+          ? r.quantity / r.baseAmount
+          : 1
+    const nutrients = Object.fromEntries(
+      Object.entries(raw).map(([k, v]) => [k, Number(((v as number) * scale).toFixed(4))]),
+    ) as unknown as typeof raw
+
+    return {
+      entryID: r.entryID,
+      mealTypeID: r.mealTypeID,
+      name: r.name,
+      calories: r.calories,
+      quantity: r.quantity,
+      baseAmount: r.baseAmount,
+      baseUnit: r.baseUnit,
+      brandOwner: r.brandOwner ?? undefined,
+      nutrients,
+    }
+  })
 }
 
 export async function getMealsForDate(db: Kysely<DatabaseSchema>, date: string) {
