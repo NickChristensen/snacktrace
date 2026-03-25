@@ -18,7 +18,7 @@ export async function getEntriesForDate(db: Kysely<DatabaseSchema>, date: string
       'nutrients',
       'brandOwner',
     ])
-    .where(sql`date(date)`, '=', date)
+    .where(sql`date(day)`, '=', date)
     .orderBy('mealTypeID')
     .execute()
 
