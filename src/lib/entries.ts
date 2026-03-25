@@ -8,7 +8,7 @@ export async function getEntriesForDate(db: Kysely<DatabaseSchema>, date: string
   const rows = await db
     .selectFrom('foodEntryRecord')
     .select([
-      'entryID',
+      // 'entryID',
       'mealTypeID',
       'name',
       'calories',
@@ -36,8 +36,13 @@ export async function getEntriesForDate(db: Kysely<DatabaseSchema>, date: string
       Object.entries(raw).map(([k, v]) => [k, Number(((v as number) * scale).toFixed(4))]),
     ) as unknown as typeof raw
 
+    // entryID is a binary UUID stored as BLOB — convert to hex string for JSON output
+    // const entryID = Buffer.isBuffer(r.entryID)
+    //   ? (r.entryID as Buffer).toString('hex').replace(/^(.{8})(.{4})(.{4})(.{4})(.{12})$/, '$1-$2-$3-$4-$5')
+    //   : (r.entryID as string)
+
     return {
-      entryID: r.entryID,
+      // entryID,
       mealTypeID: r.mealTypeID,
       name: r.name,
       calories: r.calories,
