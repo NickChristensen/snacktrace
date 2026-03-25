@@ -1,0 +1,24 @@
+- For a given day
+  - goals
+    - mode
+    - goal amount (or amounts for range)
+    - actual values
+      - total
+      - by meal
+      - by food
+  - macros (if not already in goals, same as goals -> actual values above)
+  - meals
+    - goal/macro totals
+    - times
+    - foods consumed
+      - goal values/macros
+  - foods (not grouped by meal)
+    - goal values/macros
+
+- For a range of days
+  - goals
+    - goal amount(s) -- I'm not sure how to do this, the goal amount might differ from day to day in the range.
+    - actual values
+      - collection of day-by-day totals
+      - average over the range
+  - macros (if not already in goals, same as goals -> actual values above)
