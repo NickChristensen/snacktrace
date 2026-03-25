@@ -7,7 +7,8 @@
   "type": "commonjs",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "tsc",
+    "dev": "ts-node ./src/index.ts"
   },
   "bin": {
     "snacktrace": "./bin/run.js"
@@ -19,7 +20,12 @@
     "topicSeparator": " "
   },
   "dependencies": {
-    "@oclif/core": "^4.10.2"
+    "@oclif/core": "^4.10.2",
+    "@types/better-sqlite3": "^7.6.13",
+    "better-sqlite3": "^12.8.0",
+    "date-fns": "^4.1.0",
+    "kysely": "^0.28.14",
+    "typescript": "^6.0.2"
   },
   "devDependencies": {
     "@types/node": "^18.19.130",
