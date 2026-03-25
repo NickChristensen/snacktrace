@@ -31,12 +31,14 @@ export function averageNutrients(records: NutrientRecord[], days: number): Nutri
 }
 
 // FoodNoms uses built-in names for meal types since the name column is empty in the DB
+// Built-in meal types have empty name column — these are the app defaults
 const MEAL_NAMES: Record<string, string> = {
   '1': 'Breakfast',
   '2': 'Lunch',
   '3': 'Dinner',
-  '4': 'Snacks',
-  '5': 'Morning Snack',
+  '4': 'Snack',
+  '5': 'Pre-Workout',
+  '6': 'Post-Workout',
 }
 
 export function mealName(mealTypeID: string, dbName: string | null | undefined): string {
