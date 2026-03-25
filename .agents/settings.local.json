@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node bin/run.js*)",
+      "Bash(sqlite3 ~/Library/Containers/com.algebraiclabs.foodnoms/Data/Documents/db.db \"SELECT*)"
+    ]
+  }
+}
