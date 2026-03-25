@@ -9,8 +9,14 @@ const date_js_1 = require("../../lib/date.js");
 class RangeDays extends base_command_js_1.BaseCommand {
     static description = 'Per-day nutrient totals over a date range';
     static args = {
-        from: core_1.Args.string({ description: 'Start date (YYYY-MM-DD)', required: true }),
-        to: core_1.Args.string({ description: 'End date (YYYY-MM-DD)', required: true }),
+        from: core_1.Args.string({
+            description: 'Start date (YYYY-MM-DD, "yesterday", or a relative offset like "-7d")',
+            required: true,
+        }),
+        to: core_1.Args.string({
+            description: 'End date (YYYY-MM-DD, "yesterday", or a relative offset like "-1d")',
+            required: true,
+        }),
     };
     async run() {
         const { args } = await this.parse(RangeDays);

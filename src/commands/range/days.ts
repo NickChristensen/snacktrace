@@ -10,8 +10,14 @@ export default class RangeDays extends BaseCommand {
   static description = 'Per-day nutrient totals over a date range'
 
   static args = {
-    from: Args.string({description: 'Start date (YYYY-MM-DD)', required: true}),
-    to: Args.string({description: 'End date (YYYY-MM-DD)', required: true}),
+    from: Args.string({
+      description: 'Start date (YYYY-MM-DD, "yesterday", or a relative offset like "-7d")',
+      required: true,
+    }),
+    to: Args.string({
+      description: 'End date (YYYY-MM-DD, "yesterday", or a relative offset like "-1d")',
+      required: true,
+    }),
   }
 
   async run() {
