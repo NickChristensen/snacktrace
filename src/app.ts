@@ -3,7 +3,7 @@ import {Type} from '@sinclair/typebox'
 import Fastify, {type FastifyInstance, type FastifyReply} from 'fastify'
 
 import {FoodNomsDatabase} from './db.js'
-import {allGoals, daySummary, foodSnapshot, InvalidFoodCursorError, isIsoDate, listFoods, rangeSummary} from './domain.js'
+import {allGoals, daySummary, foodSnapshot, inclusiveDayCount, InvalidFoodCursorError, isIsoDate, listFoods, rangeSummary} from './domain.js'
 
 const DateString = Type.String({pattern: '^\\d{4}-\\d{2}-\\d{2}$', description: 'Calendar date in strict ISO 8601 YYYY-MM-DD form.'})
 const amount = (unit: string) => Type.Number({description: `Amount in ${unit}.`})
@@ -64,6 +64,12 @@ const GoalHistory = Type.Object({ruleId: Type.Union([Type.String(), Type.Null()]
 const GoalHistoryResponse = Type.Object({goalId: Type.Union([Type.String(), Type.Null()]), type: Type.String(), history: Type.Array(GoalHistory)}, {additionalProperties: false})
 const GoalSummary = Type.Object({type: Type.String(), averageActual: Type.Number(), statusCounts: Type.Object({below: Type.Optional(Type.Integer()), within: Type.Optional(Type.Integer()), above: Type.Optional(Type.Integer()), tracking: Type.Optional(Type.Integer())}, {additionalProperties: false})}, {additionalProperties: false})
 const EmptyQuery = Type.Object({}, {additionalProperties: false})
+const MAX_RANGE_DAYS = 366
+const RangeTooLargeError = Type.Object({status: Type.Literal(400), code: Type.Literal('RANGE_TOO_LARGE'), message: Type.Literal('Date ranges may contain at most 366 days')}, {additionalProperties: false})
+const DateRangeQuery = Type.Object({
+  from: Type.String({pattern: '^\\d{4}-\\d{2}-\\d{2}$', description: 'First calendar date in strict ISO 8601 YYYY-MM-DD form.'}),
+  to: Type.String({pattern: '^\\d{4}-\\d{2}-\\d{2}$', description: 'Last calendar date in strict ISO 8601 YYYY-MM-DD form. The inclusive range from `from` through `to` may contain at most 366 days.'}),
+}, {additionalProperties: false})
 const HEALTH_TABLES = ['foodEntryRecord', 'mealTypeRecord', 'goalRecord', 'goalRuleRecord'] as const
 
 export interface AppOptions {dbPath?: string; logger?: boolean}
@@ -122,9 +128,10 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
     })
   }
 
-  app.get<{Querystring: {from: string; to: string}}>('/v1/days', {schema: {tags: ['days'], summary: 'Get an inclusive day range', operationId: 'getDays', querystring: Type.Object({from: DateString, to: DateString}, {additionalProperties: false}), response: {200: Type.Object({from: DateString, to: DateString, dayCount: Type.Integer(), totals: Totals, averages: Totals, items: Type.Array(RangeDayResponse), goalSummary: Type.Array(GoalSummary)}, {additionalProperties: false}), 400: ErrorResponse, 500: ErrorResponse}}}, async (request, reply) => {
+  app.get<{Querystring: {from: string; to: string}}>('/v1/days', {schema: {tags: ['days'], summary: 'Get an inclusive day range of at most 366 days', operationId: 'getDays', querystring: DateRangeQuery, response: {200: Type.Object({from: DateString, to: DateString, dayCount: Type.Integer(), totals: Totals, averages: Totals, items: Type.Array(RangeDayResponse), goalSummary: Type.Array(GoalSummary)}, {additionalProperties: false}), 400: Type.Union([ErrorResponse, RangeTooLargeError]), 500: ErrorResponse}}}, async (request, reply) => {
     const {from, to} = request.query
     if (!isIsoDate(from) || !isIsoDate(to) || from > to) return reply.code(400).send({status: 400, code: 'VALIDATION_ERROR', message: 'from and to must be real ISO dates with from less than or equal to to'})
+    if (inclusiveDayCount(from, to) > MAX_RANGE_DAYS) return reply.code(400).send({status: 400, code: 'RANGE_TOO_LARGE', message: 'Date ranges may contain at most 366 days'})
     const db = getDatabase()
     return db.read(() => rangeSummary(db, from, to))
   })

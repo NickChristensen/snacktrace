@@ -16,7 +16,7 @@ The API listens on `127.0.0.1:3000` by default. `GET /health` returns `{"status"
 ## Routes
 
 - `GET /v1/days/:date` returns the full date summary; `/entries`, `/meals`, and `/goals` return its individual sections.
-- `GET /v1/days?from=YYYY-MM-DD&to=YYYY-MM-DD` returns an inclusive, uncapped range with totals, averages, daily items, and per-goal status counts.
+- `GET /v1/days?from=YYYY-MM-DD&to=YYYY-MM-DD` returns an inclusive range of at most 366 days with totals, averages, daily items, and per-goal status counts. Larger ranges return `400` with code `RANGE_TOO_LARGE`.
 - `GET /v1/goals` returns each configured goal with its full dated rule history.
 - `GET /v1/foods?q=&limit=50&cursor=&sort=name|-lastLoggedAt` returns deterministic latest food snapshots. `cursor` is opaque and must be used with the same sort.
 - `GET /v1/foods/:foodId` returns the latest deterministic snapshot from entry history.

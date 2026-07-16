@@ -55,7 +55,7 @@ describe('SnackTrace API', () => {
   it('rejects unknown query parameters, invalid ranges, bad cursors, and missing foods', async () => {
     const app = await buildApp({dbPath: createFixture(), logger: false}); apps.push(app)
     expect((await app.inject('/v1/foods?unknown=1')).statusCode).to.equal(400)
-    expect((await app.inject('/v1/days?from=2026-07-13&to=2026-07-12')).json()).to.include({code: 'VALIDATION_ERROR'})
+    expect((await app.inject('/v1/days?from=2026-07-13&to=2026-07-12')).json()).to.deep.equal({status: 400, code: 'VALIDATION_ERROR', message: 'from and to must be real ISO dates with from less than or equal to to'})
     expect((await app.inject('/v1/foods?cursor=bad')).json()).to.include({code: 'VALIDATION_ERROR'})
     expect((await app.inject('/v1/foods/nope')).json()).to.include({status: 404, code: 'NOT_FOUND'})
   })
@@ -136,6 +136,16 @@ describe('SnackTrace API', () => {
     expect(body.goalSummary.find((goal: {type: string}) => goal.type === 'calorie').statusCounts).to.deep.equal({above: 1, within: 1})
   })
 
+  it('accepts inclusive ranges through 366 days and rejects longer ranges', async () => {
+    const app = await buildApp({dbPath: createFixture(), logger: false}); apps.push(app)
+    const maximum = await app.inject('/v1/days?from=2024-01-01&to=2024-12-31')
+    expect(maximum.statusCode).to.equal(200)
+    expect(maximum.json()).to.include({from: '2024-01-01', to: '2024-12-31', dayCount: 366})
+    const tooLarge = await app.inject('/v1/days?from=2024-01-01&to=2025-01-01')
+    expect(tooLarge.statusCode).to.equal(400)
+    expect(tooLarge.json()).to.deep.equal({status: 400, code: 'RANGE_TOO_LARGE', message: 'Date ranges may contain at most 366 days'})
+  })
+
   it('paginates foods with an opaque cursor and retains undated latest snapshots', async () => {
     const app = await buildApp({dbPath: createFixture(), logger: false}); apps.push(app)
     const first = (await app.inject('/v1/foods?limit=1')).json()
@@ -187,6 +197,9 @@ describe('SnackTrace API', () => {
     await app.ready()
     const document = app.swagger() as {paths: Record<string, unknown>}
     expect(Object.keys(document.paths)).to.have.members(['/health', '/openapi.json', '/v1/days/{date}', '/v1/days/{date}/entries', '/v1/days/{date}/meals', '/v1/days/{date}/goals', '/v1/days', '/v1/goals', '/v1/foods', '/v1/foods/{foodId}'])
+    const daysRange = document.paths['/v1/days'] as {get: {summary: string; parameters: Array<{name: string; description: string}>}}
+    expect(daysRange.get.summary).to.equal('Get an inclusive day range of at most 366 days')
+    expect(daysRange.get.parameters.find((parameter) => parameter.name === 'to')?.description).to.include('at most 366 days')
     execFileSync(process.execPath, ['--import', 'tsx', 'src/generate-openapi.ts'], {cwd: process.cwd(), env: {...process.env, FOODNOMS_DB_PATH: ''}})
   })
 })

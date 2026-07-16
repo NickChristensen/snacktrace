@@ -2616,7 +2616,7 @@
     "/v1/days": {
       "get": {
         "operationId": "getDays",
-        "summary": "Get an inclusive day range",
+        "summary": "Get an inclusive day range of at most 366 days",
         "tags": [
           "days"
         ],
@@ -2629,7 +2629,7 @@
             "in": "query",
             "name": "from",
             "required": true,
-            "description": "Calendar date in strict ISO 8601 YYYY-MM-DD form."
+            "description": "First calendar date in strict ISO 8601 YYYY-MM-DD form."
           },
           {
             "schema": {
@@ -2639,7 +2639,7 @@
             "in": "query",
             "name": "to",
             "required": true,
-            "description": "Calendar date in strict ISO 8601 YYYY-MM-DD form."
+            "description": "Last calendar date in strict ISO 8601 YYYY-MM-DD form. The inclusive range from `from` through `to` may contain at most 366 days."
           }
         ],
         "responses": {
@@ -3434,42 +3434,75 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": false,
-                  "type": "object",
-                  "required": [
-                    "status",
-                    "code",
-                    "message"
-                  ],
-                  "properties": {
-                    "status": {
-                      "type": "integer"
-                    },
-                    "code": {
-                      "type": "string"
-                    },
-                    "message": {
-                      "type": "string"
-                    },
-                    "issues": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "required": [
-                          "path",
-                          "message"
-                        ],
-                        "properties": {
-                          "path": {
-                            "type": "string"
-                          },
-                          "message": {
-                            "type": "string"
+                  "anyOf": [
+                    {
+                      "additionalProperties": false,
+                      "type": "object",
+                      "required": [
+                        "status",
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "status": {
+                          "type": "integer"
+                        },
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "issues": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "required": [
+                              "path",
+                              "message"
+                            ],
+                            "properties": {
+                              "path": {
+                                "type": "string"
+                              },
+                              "message": {
+                                "type": "string"
+                              }
+                            }
                           }
                         }
                       }
+                    },
+                    {
+                      "additionalProperties": false,
+                      "type": "object",
+                      "required": [
+                        "status",
+                        "code",
+                        "message"
+                      ],
+                      "properties": {
+                        "status": {
+                          "type": "number",
+                          "enum": [
+                            400
+                          ]
+                        },
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "RANGE_TOO_LARGE"
+                          ]
+                        },
+                        "message": {
+                          "type": "string",
+                          "enum": [
+                            "Date ranges may contain at most 366 days"
+                          ]
+                        }
+                      }
                     }
-                  }
+                  ]
                 }
               }
             }

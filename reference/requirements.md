@@ -15,7 +15,7 @@ SnackTrace v2 is a read-only Fastify HTTP service. It completely replaces the oc
 - Put application routes under `/v1`, reject unknown request parameters, and return errors as `{status, code, message, issues?}`.
 - Accept only real `YYYY-MM-DD` calendar dates. Day and range queries use FoodNoms' `day` value and exclude entries whose `day` is null.
 - Return a complete day from `/v1/days/:date` and section collections from `/entries`, `/meals`, and `/goals` using `{date, items}`.
-- Return an inclusive, uncapped range from `/v1/days?from=&to=` with `dayCount`, totals, averages, per-day totals/goals, and goal status summaries. Range items do not embed meals or entries.
+- Return an inclusive range of at most 366 days from `/v1/days?from=&to=` with `dayCount`, totals, averages, per-day totals/goals, and goal status summaries. Range items do not embed meals or entries. Reject larger ranges with `{status: 400, code: "RANGE_TOO_LARGE", message: "Date ranges may contain at most 366 days"}`.
 - Return complete dated goal history from `/v1/goals`. Resolve progress with the newest active matching weekday override before the newest generic rule, using Foundation weekday numbering.
 - Return deterministic latest logged-food snapshots from `/v1/foods` and `/v1/foods/:foodId`. Browse/search pagination uses an opaque cursor bound to the query and sort.
 

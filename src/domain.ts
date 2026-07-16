@@ -50,6 +50,10 @@ export function isIsoDate(value: string): boolean {
   return /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(Date.parse(`${value}T00:00:00.000Z`)) && new Date(`${value}T00:00:00.000Z`).toISOString().startsWith(value)
 }
 
+export function inclusiveDayCount(from: string, to: string): number {
+  return (Date.parse(`${to}T00:00:00.000Z`) - Date.parse(`${from}T00:00:00.000Z`)) / 86_400_000 + 1
+}
+
 export function normalizeId(value: string | Buffer | null): string | null {
   if (value === null) return null
   const hex = Buffer.isBuffer(value) ? value.toString('hex') : Buffer.from(value, 'latin1').toString('hex')
