@@ -39,6 +39,19 @@ describe('SnackTrace API', () => {
     expect((await app.inject('/v1/foods/nope')).json()).to.include({status: 404, code: 'NOT_FOUND'})
   })
 
+  it('normalizes malformed and oversized URL paths as API errors', async () => {
+    const app = await buildApp({dbPath: createFixture(), logger: false}); apps.push(app)
+    for (const [url, status, issue] of [
+      ['/v1/foods/%ZZ', 400, 'URL must be validly percent-encoded'],
+      [`/v1/foods/${'a'.repeat(201)}`, 414, 'Path parameter exceeds the maximum length'],
+    ] as const) {
+      const response = await app.inject(url)
+      expect(response.statusCode).to.equal(status)
+      expect(response.headers['content-type']).to.match(/^application\/json/)
+      expect(response.json()).to.deep.equal({status, code: 'VALIDATION_ERROR', message: 'Request validation failed', issues: [{path: 'url', message: issue}]})
+    }
+  })
+
   it('returns an inclusive range with zero-entry days and daily goal status summaries', async () => {
     const app = await buildApp({dbPath: createFixture(), logger: false}); apps.push(app)
     const response = await app.inject('/v1/days?from=2026-07-12&to=2026-07-13')

@@ -1,6 +1,6 @@
 import swagger from '@fastify/swagger'
 import {Type} from '@sinclair/typebox'
-import Fastify, {type FastifyInstance} from 'fastify'
+import Fastify, {type FastifyInstance, type FastifyReply} from 'fastify'
 
 import {FoodNomsDatabase} from './db.js'
 import {allGoals, daySummary, foodSnapshot, isIsoDate, listFoods, rangeSummary} from './domain.js'
@@ -68,7 +68,16 @@ const EmptyQuery = Type.Object({}, {additionalProperties: false})
 export interface AppOptions {dbPath?: string; logger?: boolean}
 
 export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
-  const app = Fastify({logger: options.logger ?? true, ajv: {customOptions: {allErrors: true, coerceTypes: true, removeAdditional: false}}})
+  const app = Fastify({
+    logger: options.logger ?? true,
+    routerOptions: {maxParamLength: 200},
+    ajv: {customOptions: {allErrors: true, coerceTypes: true, removeAdditional: false}},
+    frameworkErrors: (error, _request, reply) => {
+      const status = error.code === 'FST_ERR_MAX_PARAM_LENGTH' ? 414 : 400
+      const message = status === 414 ? 'Path parameter exceeds the maximum length' : 'URL must be validly percent-encoded'
+      void (reply as FastifyReply).code(status).send({status, code: 'VALIDATION_ERROR', message: 'Request validation failed', issues: [{path: 'url', message}]})
+    },
+  })
   const database = options.dbPath ? new FoodNomsDatabase(options.dbPath) : undefined
   if (database) app.decorate('foodnoms', database)
   const getDatabase = (): FoodNomsDatabase => {
