@@ -3,6 +3,13 @@ import type {FoodNomsDatabase} from './db.js'
 export type Nutrients = Record<string, number>
 export type GoalMode = 'maximum' | 'minimum' | 'range' | 'tracking'
 
+export class InvalidFoodCursorError extends Error {
+  constructor() {
+    super('Invalid cursor')
+    this.name = 'InvalidFoodCursorError'
+  }
+}
+
 type EntryRow = {
   id: number
   entryID: string | Buffer | null
@@ -215,8 +222,8 @@ export function allGoals(db: FoodNomsDatabase) {
 export function listFoods(db: FoodNomsDatabase, options: {q?: string; limit: number; sort: 'name' | '-lastLoggedAt'; cursor?: string}) {
   let cursor: {name: string; date: string | null; id: string; sort: 'name' | '-lastLoggedAt'; q: string} | undefined
   if (options.cursor) {
-    try { cursor = JSON.parse(Buffer.from(options.cursor, 'base64url').toString('utf8')) as typeof cursor } catch { throw new Error('Invalid cursor') }
-    if (!cursor || typeof cursor.name !== 'string' || (typeof cursor.date !== 'string' && cursor.date !== null) || typeof cursor.id !== 'string' || cursor.sort !== options.sort || cursor.q !== (options.q ?? '')) throw new Error('Invalid cursor')
+    try { cursor = JSON.parse(Buffer.from(options.cursor, 'base64url').toString('utf8')) as typeof cursor } catch { throw new InvalidFoodCursorError() }
+    if (!cursor || typeof cursor.name !== 'string' || (typeof cursor.date !== 'string' && cursor.date !== null) || typeof cursor.id !== 'string' || cursor.sort !== options.sort || cursor.q !== (options.q ?? '')) throw new InvalidFoodCursorError()
   }
   const clauses = ['foodID IS NOT NULL']
   const params: unknown[] = []

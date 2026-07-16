@@ -93,6 +93,7 @@ describe('SnackTrace API', () => {
       ['/v1/days/2026-07-12/goals', '/v1/days/{date}/goals'],
       ['/v1/days?from=2026-07-12&to=2026-07-12', '/v1/days'],
       ['/v1/goals', '/v1/goals'],
+      ['/v1/foods', '/v1/foods'],
       ['/v1/foods/anything', '/v1/foods/{foodId}'],
     ] as const) {
       const response = await app.inject(url)
@@ -100,9 +101,20 @@ describe('SnackTrace API', () => {
       expect(response.json()).to.deep.equal({status: 500, code: 'INTERNAL_ERROR', message: 'Internal server error'})
       expect(document.paths[path].get.responses).to.have.property('500')
     }
-    const foodList = await app.inject('/v1/foods')
-    expect(foodList.statusCode).to.equal(400)
-    expect(document.paths['/v1/foods'].get.responses).not.to.have.property('500')
+  })
+
+  it('keeps invalid food cursors as validation errors while hiding operational failures', async () => {
+    const path = createFixture()
+    const app = await buildApp({dbPath: path, logger: false}); apps.push(app)
+    const invalidCursor = await app.inject('/v1/foods?cursor=bad')
+    expect(invalidCursor.statusCode).to.equal(400)
+    expect(invalidCursor.json()).to.deep.equal({status: 400, code: 'VALIDATION_ERROR', message: 'Invalid cursor'})
+    const writer = new Database(path)
+    writer.exec('DROP TABLE foodEntryRecord')
+    writer.close()
+    const databaseFailure = await app.inject('/v1/foods')
+    expect(databaseFailure.statusCode).to.equal(500)
+    expect(databaseFailure.json()).to.deep.equal({status: 500, code: 'INTERNAL_ERROR', message: 'Internal server error'})
   })
 
   it('returns an inclusive range with zero-entry days and daily goal status summaries', async () => {

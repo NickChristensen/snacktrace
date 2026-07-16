@@ -3,7 +3,7 @@ import {Type} from '@sinclair/typebox'
 import Fastify, {type FastifyInstance, type FastifyReply} from 'fastify'
 
 import {FoodNomsDatabase} from './db.js'
-import {allGoals, daySummary, foodSnapshot, isIsoDate, listFoods, rangeSummary} from './domain.js'
+import {allGoals, daySummary, foodSnapshot, InvalidFoodCursorError, isIsoDate, listFoods, rangeSummary} from './domain.js'
 
 const DateString = Type.String({pattern: '^\\d{4}-\\d{2}-\\d{2}$', description: 'Calendar date in strict ISO 8601 YYYY-MM-DD form.'})
 const amount = (unit: string) => Type.Number({description: `Amount in ${unit}.`})
@@ -131,9 +131,10 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
 
   app.get('/v1/goals', {schema: {tags: ['goals'], summary: 'Get dated goal rule history', operationId: 'getGoals', querystring: EmptyQuery, response: {200: Type.Object({items: Type.Array(GoalHistoryResponse)}, {additionalProperties: false}), 400: ErrorResponse, 404: ErrorResponse, 500: ErrorResponse}}}, async () => { const db = getDatabase(); return db.read(() => allGoals(db)) })
 
-  app.get<{Querystring: {q?: string; limit?: number; cursor?: string; sort?: 'name' | '-lastLoggedAt'}}>('/v1/foods', {schema: {tags: ['foods'], summary: 'List latest food snapshots', operationId: 'listFoods', querystring: Type.Object({q: Type.Optional(Type.String({minLength: 1, maxLength: 200})), limit: Type.Optional(Type.Integer({minimum: 1, maximum: 200, default: 50})), cursor: Type.Optional(Type.String({minLength: 1, maxLength: 1000})), sort: Type.Optional(Type.Union([Type.Literal('name'), Type.Literal('-lastLoggedAt')], {default: 'name'}))}, {additionalProperties: false}), response: {200: Type.Object({items: Type.Array(FoodResponse), nextCursor: Type.Optional(Type.String())}, {additionalProperties: false}), 400: ErrorResponse}}}, async (request, reply) => {
+  app.get<{Querystring: {q?: string; limit?: number; cursor?: string; sort?: 'name' | '-lastLoggedAt'}}>('/v1/foods', {schema: {tags: ['foods'], summary: 'List latest food snapshots', operationId: 'listFoods', querystring: Type.Object({q: Type.Optional(Type.String({minLength: 1, maxLength: 200})), limit: Type.Optional(Type.Integer({minimum: 1, maximum: 200, default: 50})), cursor: Type.Optional(Type.String({minLength: 1, maxLength: 1000})), sort: Type.Optional(Type.Union([Type.Literal('name'), Type.Literal('-lastLoggedAt')], {default: 'name'}))}, {additionalProperties: false}), response: {200: Type.Object({items: Type.Array(FoodResponse), nextCursor: Type.Optional(Type.String())}, {additionalProperties: false}), 400: ErrorResponse, 500: ErrorResponse}}}, async (request, reply) => {
     try { const db = getDatabase(); return db.read(() => listFoods(db, {q: request.query.q, limit: request.query.limit ?? 50, cursor: request.query.cursor, sort: request.query.sort ?? 'name'})) } catch (error) {
-      return reply.code(400).send({status: 400, code: 'VALIDATION_ERROR', message: error instanceof Error ? error.message : 'Invalid request'})
+      if (error instanceof InvalidFoodCursorError) return reply.code(400).send({status: 400, code: 'VALIDATION_ERROR', message: error.message})
+      throw error
     }
   })
 
