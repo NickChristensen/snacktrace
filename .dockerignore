@@ -1,0 +1,8 @@
+.git
+.agents
+build
+node_modules
+test
+.env*
+*.db
+*.sqlite*

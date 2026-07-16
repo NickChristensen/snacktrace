@@ -1,17 +1,5 @@
-*-debug.log
-*-error.log
-**/.DS_Store
-/.idea
-# /dist
-/tmp
-/node_modules
-oclif.manifest.json
-
-
-
-yarn.lock
-pnpm-lock.yaml
-
-*.sqlite*
-.env.local
-tsconfig.tsbuildinfo
+node_modules/
+build/
+coverage/
+.env
+*.db
