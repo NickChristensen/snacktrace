@@ -98,14 +98,14 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
   app.setNotFoundHandler((request, reply) => reply.code(404).send({status: 404, code: 'NOT_FOUND', message: `Route ${request.method} ${request.url} not found`}))
   app.addHook('onClose', async () => database?.close())
 
-  app.get('/health', {schema: {tags: ['system'], summary: 'Check service health', operationId: 'health', querystring: EmptyQuery, response: {200: Type.Object({status: Type.Literal('ok')}, {additionalProperties: false}), 404: ErrorResponse, 503: ErrorResponse}}}, async (_request, reply) => {
+  app.get('/health', {schema: {tags: ['system'], summary: 'Check service health', operationId: 'health', querystring: EmptyQuery, response: {200: Type.Object({status: Type.Literal('ok')}, {additionalProperties: false}), 400: ErrorResponse, 404: ErrorResponse, 503: ErrorResponse}}}, async (_request, reply) => {
     try {
       const db = getDatabase()
       db.read(() => { for (const table of HEALTH_TABLES) db.sqlite.prepare(`SELECT 1 FROM ${table} LIMIT 1`).get() })
       return {status: 'ok'}
     } catch { return reply.code(503).send({status: 503, code: 'DATABASE_UNAVAILABLE', message: 'FoodNoms database is unavailable'}) }
   })
-  app.get('/openapi.json', {schema: {tags: ['system'], summary: 'Get the OpenAPI document', operationId: 'getOpenApi', querystring: EmptyQuery, response: {200: Type.Object({openapi: Type.Literal('3.1.2')}, {additionalProperties: true}), 404: ErrorResponse}}}, async () => app.swagger())
+  app.get('/openapi.json', {schema: {tags: ['system'], summary: 'Get the OpenAPI document', operationId: 'getOpenApi', querystring: EmptyQuery, response: {200: Type.Object({openapi: Type.Literal('3.1.2')}, {additionalProperties: true}), 400: ErrorResponse, 404: ErrorResponse}}}, async () => app.swagger())
 
   app.get<{Params: {date: string}}>('/v1/days/:date', {schema: {tags: ['days'], summary: 'Get a complete day summary', operationId: 'getDay', params: Type.Object({date: DateString}, {additionalProperties: false}), querystring: EmptyQuery, response: {200: DayResponse, 400: ErrorResponse}}}, async (request, reply) => {
     if (!isIsoDate(request.params.date)) return reply.code(400).send({status: 400, code: 'VALIDATION_ERROR', message: 'date must be a real ISO date'})
@@ -129,7 +129,7 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
     return db.read(() => rangeSummary(db, from, to))
   })
 
-  app.get('/v1/goals', {schema: {tags: ['goals'], summary: 'Get dated goal rule history', operationId: 'getGoals', querystring: EmptyQuery, response: {200: Type.Object({items: Type.Array(GoalHistoryResponse)}, {additionalProperties: false}), 404: ErrorResponse, 500: ErrorResponse}}}, async () => { const db = getDatabase(); return db.read(() => allGoals(db)) })
+  app.get('/v1/goals', {schema: {tags: ['goals'], summary: 'Get dated goal rule history', operationId: 'getGoals', querystring: EmptyQuery, response: {200: Type.Object({items: Type.Array(GoalHistoryResponse)}, {additionalProperties: false}), 400: ErrorResponse, 404: ErrorResponse, 500: ErrorResponse}}}, async () => { const db = getDatabase(); return db.read(() => allGoals(db)) })
 
   app.get<{Querystring: {q?: string; limit?: number; cursor?: string; sort?: 'name' | '-lastLoggedAt'}}>('/v1/foods', {schema: {tags: ['foods'], summary: 'List latest food snapshots', operationId: 'listFoods', querystring: Type.Object({q: Type.Optional(Type.String({minLength: 1, maxLength: 200})), limit: Type.Optional(Type.Integer({minimum: 1, maximum: 200, default: 50})), cursor: Type.Optional(Type.String({minLength: 1, maxLength: 1000})), sort: Type.Optional(Type.Union([Type.Literal('name'), Type.Literal('-lastLoggedAt')], {default: 'name'}))}, {additionalProperties: false}), response: {200: Type.Object({items: Type.Array(FoodResponse), nextCursor: Type.Optional(Type.String())}, {additionalProperties: false}), 400: ErrorResponse}}}, async (request, reply) => {
     try { const db = getDatabase(); return db.read(() => listFoods(db, {q: request.query.q, limit: request.query.limit ?? 50, cursor: request.query.cursor, sort: request.query.sort ?? 'name'})) } catch (error) {
@@ -137,7 +137,7 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
     }
   })
 
-  app.get<{Params: {foodId: string}}>('/v1/foods/:foodId', {schema: {tags: ['foods'], summary: 'Get the latest snapshot for one food', operationId: 'getFood', params: Type.Object({foodId: Type.String({minLength: 1, maxLength: 200})}, {additionalProperties: false}), querystring: EmptyQuery, response: {200: FoodResponse, 404: ErrorResponse}}}, async (request, reply) => {
+  app.get<{Params: {foodId: string}}>('/v1/foods/:foodId', {schema: {tags: ['foods'], summary: 'Get the latest snapshot for one food', operationId: 'getFood', params: Type.Object({foodId: Type.String({minLength: 1, maxLength: 200})}, {additionalProperties: false}), querystring: EmptyQuery, response: {200: FoodResponse, 400: ErrorResponse, 404: ErrorResponse}}}, async (request, reply) => {
     const db = getDatabase()
     const food = db.read(() => foodSnapshot(db, request.params.foodId))
     return food ?? reply.code(404).send({status: 404, code: 'NOT_FOUND', message: 'Food not found'})

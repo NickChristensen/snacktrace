@@ -65,6 +65,23 @@ describe('SnackTrace API', () => {
     }
   })
 
+  it('documents validation errors for every EmptyQuery route', async () => {
+    const app = await buildApp({logger: false}); apps.push(app)
+    await app.ready()
+    const document = app.swagger() as {paths: Record<string, {get: {responses: Record<string, unknown>}}>}
+    for (const [url, path] of [
+      ['/health?unexpected=1', '/health'],
+      ['/openapi.json?unexpected=1', '/openapi.json'],
+      ['/v1/goals?unexpected=1', '/v1/goals'],
+      ['/v1/foods/anything?unexpected=1', '/v1/foods/{foodId}'],
+    ] as const) {
+      const response = await app.inject(url)
+      expect(response.statusCode).to.equal(400)
+      expect(response.json()).to.include({status: 400, code: 'VALIDATION_ERROR', message: 'Request validation failed'})
+      expect(document.paths[path].get.responses).to.have.property('400')
+    }
+  })
+
   it('returns an inclusive range with zero-entry days and daily goal status summaries', async () => {
     const app = await buildApp({dbPath: createFixture(), logger: false}); apps.push(app)
     const response = await app.inject('/v1/days?from=2026-07-12&to=2026-07-13')
