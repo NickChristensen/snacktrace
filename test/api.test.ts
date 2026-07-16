@@ -96,6 +96,19 @@ describe('SnackTrace API', () => {
     }
   })
 
+  it('searches only latest snapshots, breaking matching timestamps by record ID', async () => {
+    const app = await buildApp({dbPath: createFixture(), logger: false}); apps.push(app)
+    const latest = await app.inject('/v1/foods?q=final')
+    expect(latest.statusCode).to.equal(200)
+    expect(latest.json().items[0]).to.include({foodId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', name: 'Apple Final'})
+    const historical = await app.inject('/v1/foods?q=historical')
+    expect(historical.statusCode).to.equal(200)
+    expect(historical.json().items).to.deep.equal([])
+    const noTimestamp = await app.inject('/v1/foods?q=no%20timestamp%20latest')
+    expect(noTimestamp.statusCode).to.equal(200)
+    expect(noTimestamp.json().items[0]).to.include({foodId: 'dddddddd-dddd-dddd-dddd-dddddddddddd', name: 'No Timestamp Latest', lastLoggedAt: null})
+  })
+
   it('builds the OpenAPI document without a database and exposes every documented path', async () => {
     const app = await buildApp({logger: false}); apps.push(app)
     await app.ready()
