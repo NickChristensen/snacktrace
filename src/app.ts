@@ -107,14 +107,14 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
   })
   app.get('/openapi.json', {schema: {tags: ['system'], summary: 'Get the OpenAPI document', operationId: 'getOpenApi', querystring: EmptyQuery, response: {200: Type.Object({openapi: Type.Literal('3.1.2')}, {additionalProperties: true}), 400: ErrorResponse, 404: ErrorResponse}}}, async () => app.swagger())
 
-  app.get<{Params: {date: string}}>('/v1/days/:date', {schema: {tags: ['days'], summary: 'Get a complete day summary', operationId: 'getDay', params: Type.Object({date: DateString}, {additionalProperties: false}), querystring: EmptyQuery, response: {200: DayResponse, 400: ErrorResponse}}}, async (request, reply) => {
+  app.get<{Params: {date: string}}>('/v1/days/:date', {schema: {tags: ['days'], summary: 'Get a complete day summary', operationId: 'getDay', params: Type.Object({date: DateString}, {additionalProperties: false}), querystring: EmptyQuery, response: {200: DayResponse, 400: ErrorResponse, 500: ErrorResponse}}}, async (request, reply) => {
     if (!isIsoDate(request.params.date)) return reply.code(400).send({status: 400, code: 'VALIDATION_ERROR', message: 'date must be a real ISO date'})
     const db = getDatabase()
     return db.read(() => { const summary = daySummary(db, request.params.date); return {date: summary.date, totals: summary.totals, goals: summary.goals, meals: summary.meals} })
   })
   for (const suffix of ['entries', 'meals', 'goals'] as const) {
     const itemSchema = suffix === 'entries' ? EntryResponse : suffix === 'meals' ? MealResponse : GoalResponse
-    app.get<{Params: {date: string} }>(`/v1/days/:date/${suffix}`, {schema: {tags: ['days'], summary: `Get a day's ${suffix}`, operationId: `getDay${suffix[0]!.toUpperCase()}${suffix.slice(1)}`, params: Type.Object({date: DateString}, {additionalProperties: false}), querystring: EmptyQuery, response: {200: Type.Object({date: DateString, items: Type.Array(itemSchema)}, {additionalProperties: false}), 400: ErrorResponse}}}, async (request, reply) => {
+    app.get<{Params: {date: string} }>(`/v1/days/:date/${suffix}`, {schema: {tags: ['days'], summary: `Get a day's ${suffix}`, operationId: `getDay${suffix[0]!.toUpperCase()}${suffix.slice(1)}`, params: Type.Object({date: DateString}, {additionalProperties: false}), querystring: EmptyQuery, response: {200: Type.Object({date: DateString, items: Type.Array(itemSchema)}, {additionalProperties: false}), 400: ErrorResponse, 500: ErrorResponse}}}, async (request, reply) => {
       if (!isIsoDate(request.params.date)) return reply.code(400).send({status: 400, code: 'VALIDATION_ERROR', message: 'date must be a real ISO date'})
       const db = getDatabase()
       const summary = db.read(() => daySummary(db, request.params.date))
@@ -122,7 +122,7 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
     })
   }
 
-  app.get<{Querystring: {from: string; to: string}}>('/v1/days', {schema: {tags: ['days'], summary: 'Get an inclusive day range', operationId: 'getDays', querystring: Type.Object({from: DateString, to: DateString}, {additionalProperties: false}), response: {200: Type.Object({from: DateString, to: DateString, dayCount: Type.Integer(), totals: Totals, averages: Totals, items: Type.Array(RangeDayResponse), goalSummary: Type.Array(GoalSummary)}, {additionalProperties: false}), 400: ErrorResponse}}}, async (request, reply) => {
+  app.get<{Querystring: {from: string; to: string}}>('/v1/days', {schema: {tags: ['days'], summary: 'Get an inclusive day range', operationId: 'getDays', querystring: Type.Object({from: DateString, to: DateString}, {additionalProperties: false}), response: {200: Type.Object({from: DateString, to: DateString, dayCount: Type.Integer(), totals: Totals, averages: Totals, items: Type.Array(RangeDayResponse), goalSummary: Type.Array(GoalSummary)}, {additionalProperties: false}), 400: ErrorResponse, 500: ErrorResponse}}}, async (request, reply) => {
     const {from, to} = request.query
     if (!isIsoDate(from) || !isIsoDate(to) || from > to) return reply.code(400).send({status: 400, code: 'VALIDATION_ERROR', message: 'from and to must be real ISO dates with from less than or equal to to'})
     const db = getDatabase()
@@ -137,7 +137,7 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
     }
   })
 
-  app.get<{Params: {foodId: string}}>('/v1/foods/:foodId', {schema: {tags: ['foods'], summary: 'Get the latest snapshot for one food', operationId: 'getFood', params: Type.Object({foodId: Type.String({minLength: 1, maxLength: 200})}, {additionalProperties: false}), querystring: EmptyQuery, response: {200: FoodResponse, 400: ErrorResponse, 404: ErrorResponse}}}, async (request, reply) => {
+  app.get<{Params: {foodId: string}}>('/v1/foods/:foodId', {schema: {tags: ['foods'], summary: 'Get the latest snapshot for one food', operationId: 'getFood', params: Type.Object({foodId: Type.String({minLength: 1, maxLength: 200})}, {additionalProperties: false}), querystring: EmptyQuery, response: {200: FoodResponse, 400: ErrorResponse, 404: ErrorResponse, 500: ErrorResponse}}}, async (request, reply) => {
     const db = getDatabase()
     const food = db.read(() => foodSnapshot(db, request.params.foodId))
     return food ?? reply.code(404).send({status: 404, code: 'NOT_FOUND', message: 'Food not found'})

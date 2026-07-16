@@ -82,6 +82,29 @@ describe('SnackTrace API', () => {
     }
   })
 
+  it('documents operational failures for every data route that reaches the 500 handler', async () => {
+    const app = await buildApp({logger: false}); apps.push(app)
+    await app.ready()
+    const document = app.swagger() as {paths: Record<string, {get: {responses: Record<string, unknown>}}>}
+    for (const [url, path] of [
+      ['/v1/days/2026-07-12', '/v1/days/{date}'],
+      ['/v1/days/2026-07-12/entries', '/v1/days/{date}/entries'],
+      ['/v1/days/2026-07-12/meals', '/v1/days/{date}/meals'],
+      ['/v1/days/2026-07-12/goals', '/v1/days/{date}/goals'],
+      ['/v1/days?from=2026-07-12&to=2026-07-12', '/v1/days'],
+      ['/v1/goals', '/v1/goals'],
+      ['/v1/foods/anything', '/v1/foods/{foodId}'],
+    ] as const) {
+      const response = await app.inject(url)
+      expect(response.statusCode).to.equal(500)
+      expect(response.json()).to.deep.equal({status: 500, code: 'INTERNAL_ERROR', message: 'Internal server error'})
+      expect(document.paths[path].get.responses).to.have.property('500')
+    }
+    const foodList = await app.inject('/v1/foods')
+    expect(foodList.statusCode).to.equal(400)
+    expect(document.paths['/v1/foods'].get.responses).not.to.have.property('500')
+  })
+
   it('returns an inclusive range with zero-entry days and daily goal status summaries', async () => {
     const app = await buildApp({dbPath: createFixture(), logger: false}); apps.push(app)
     const response = await app.inject('/v1/days?from=2026-07-12&to=2026-07-13')
