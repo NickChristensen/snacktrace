@@ -181,7 +181,7 @@ function summarizeDay(db: FoodNomsDatabase, date: string, raw: EntryRow[], defin
     const key = item.mealTypeId ?? ''
     grouped.set(key, [...(grouped.get(key) ?? []), item])
   }
-  const meals = [...grouped.entries()].map(([mealTypeId, items]) => ({mealTypeId: mealTypeId || null, name: definitions.get(mealTypeId)?.name ?? 'Meal', sortIndex: definitions.get(mealTypeId)?.sortIndex ?? Number.MAX_SAFE_INTEGER, totals: {calories: round(items.reduce((total, item) => total + item.calories, 0)), nutrients: sumNutrients(items.map((item) => item.nutrients))}, entries: items})).sort((a, b) => a.sortIndex - b.sortIndex)
+  const meals = [...grouped.entries()].map(([mealTypeId, items]) => ({mealTypeId: mealTypeId || null, name: definitions.get(mealTypeId)?.name ?? (mealTypeId ? `Meal ${mealTypeId}` : 'Meal'), sortIndex: definitions.get(mealTypeId)?.sortIndex ?? Number.MAX_SAFE_INTEGER, totals: {calories: round(items.reduce((total, item) => total + item.calories, 0)), nutrients: sumNutrients(items.map((item) => item.nutrients))}, entries: items})).sort((a, b) => a.sortIndex - b.sortIndex)
   return {date, totals: {calories: totals.calories, nutrients: Object.fromEntries(Object.entries(totals).filter(([name]) => name !== 'calories'))}, goals: goalsFor(db, date, totals), meals, entries}
 }
 

@@ -13,6 +13,7 @@ export function createFixture(): string {
     CREATE TABLE goalRuleRecord (ruleID BLOB, goalType TEXT, startDay REAL, dayOfWeek INTEGER, mode INTEGER, lowerBound REAL, upperBound REAL, isOverride INTEGER, dateCreated TEXT);
   `)
   db.prepare('INSERT INTO mealTypeRecord VALUES (?, ?, ?, ?)').run('1', '', 1, 0)
+  db.prepare('INSERT INTO mealTypeRecord VALUES (?, ?, ?, ?)').run('8', 'Brunch', 2, 0)
   const id = (hex: string) => Buffer.from(hex, 'hex')
   db.prepare('INSERT INTO foodEntryRecord VALUES (?, ?, ?, ?, julianday(?), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').run(1, id('00112233445566778899aabbccddeeff'), '2026-07-12 12:00:00.000', 'America/Chicago', '2026-07-12', '1', 'Apple', 95, 1, 100, 'g', '{"calories":100,"carbs":25,"fiber":4,"biotin":2,"chlorine":3,"sugarsAdded":5}', id('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'), null, null, 'fixture')
   db.prepare('INSERT INTO foodEntryRecord VALUES (?, ?, ?, ?, julianday(?), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').run(2, id('10112233445566778899aabbccddeeff'), '2026-07-12 13:00:00.000', 'America/Chicago', '2026-07-12', '1', 'Coffee', 5, 1, 1, 'cup', '{"calories":5,"caffeine":80}', id('bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'), null, null, 'fixture')
@@ -21,6 +22,9 @@ export function createFixture(): string {
   db.prepare('INSERT INTO foodEntryRecord VALUES (?, ?, ?, ?, NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').run(5, id('40112233445566778899aabbccddeeff'), '2026-07-11 12:00:00.000', 'America/Chicago', '1', 'Apple Historical', 95, 1, 100, 'g', '{"calories":100}', id('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'), null, null, 'fixture')
   db.prepare('INSERT INTO foodEntryRecord VALUES (?, ?, ?, ?, NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').run(6, id('50112233445566778899aabbccddeeff'), '2026-07-12 12:00:00.000', 'America/Chicago', '1', 'Apple Final', 95, 1, 100, 'g', '{"calories":100}', id('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'), null, null, 'fixture')
   db.prepare('INSERT INTO foodEntryRecord VALUES (?, ?, ?, ?, NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').run(7, id('60112233445566778899aabbccddeeff'), null, 'America/Chicago', '1', 'No Timestamp Latest', 0, 1, 1, 'g', '{}', id('dddddddddddddddddddddddddddddddd'), null, null, 'fixture')
+  db.prepare('INSERT INTO foodEntryRecord VALUES (?, ?, ?, ?, julianday(?), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').run(8, id('70112233445566778899aabbccddeeff'), '2026-07-14 12:00:00.000', 'America/Chicago', '2026-07-14', '7', 'Unknown meal type', 10, 1, 1, 'g', '{"calories":10}', null, null, null, 'fixture')
+  db.prepare('INSERT INTO foodEntryRecord VALUES (?, ?, ?, ?, julianday(?), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').run(9, id('80112233445566778899aabbccddeeff'), '2026-07-14 13:00:00.000', 'America/Chicago', '2026-07-14', '8', 'Custom meal type', 10, 1, 1, 'g', '{"calories":10}', null, null, null, 'fixture')
+  db.prepare('INSERT INTO foodEntryRecord VALUES (?, ?, ?, ?, julianday(?), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').run(10, id('90112233445566778899aabbccddeeff'), '2026-07-14 14:00:00.000', 'America/Chicago', '2026-07-14', null, 'No meal type', 10, 1, 1, 'g', '{"calories":10}', null, null, null, 'fixture')
   db.prepare('INSERT INTO goalRecord VALUES (?, ?, ?)').run(id('dddddddddddddddddddddddddddddddd'), 'calorie', 1)
   db.prepare('INSERT INTO goalRecord VALUES (?, ?, ?)').run(id('eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee'), 'protein', 2)
   db.prepare('INSERT INTO goalRecord VALUES (?, ?, ?)').run(id('ffffffffffffffffffffffffffffffff'), 'carbohydrate', 3)

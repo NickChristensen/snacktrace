@@ -25,6 +25,14 @@ describe('SnackTrace API', () => {
     expect(body.goals.find((goal: {type: string}) => goal.type === 'caffeine')).to.include({status: 'tracking', ratio: null})
   })
 
+  it('distinguishes unknown meal type IDs while preserving custom and null labels', async () => {
+    const app = await buildApp({dbPath: createFixture(), logger: false}); apps.push(app)
+    const meals = (await app.inject('/v1/days/2026-07-14')).json().meals
+    expect(meals.find((meal: {mealTypeId: string | null}) => meal.mealTypeId === '8')).to.include({name: 'Brunch'})
+    expect(meals.find((meal: {mealTypeId: string | null}) => meal.mealTypeId === '7')).to.include({name: 'Meal 7'})
+    expect(meals.find((meal: {mealTypeId: string | null}) => meal.mealTypeId === null)).to.include({name: 'Meal'})
+  })
+
   it('validates strict dates and produces JSON errors', async () => {
     const app = await buildApp({dbPath: createFixture(), logger: false}); apps.push(app)
     const response = await app.inject('/v1/days/2026-02-30')
