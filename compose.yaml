@@ -9,6 +9,8 @@ services:
       - ${FOODNOMS_DIR:?Set FOODNOMS_DIR to FoodNoms Documents directory}:/foodnoms:ro
     ports:
       - 127.0.0.1:${PORT:-3000}:3000
+    labels:
+      com.centurylinklabs.watchtower.enable: "false"
     restart: unless-stopped
     read_only: true
     cap_drop:
