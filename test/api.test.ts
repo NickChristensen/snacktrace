@@ -1,4 +1,5 @@
 import {expect} from 'chai'
+import Database from 'better-sqlite3'
 import {afterEach, describe, it} from 'mocha'
 import {execFileSync} from 'node:child_process'
 
@@ -29,6 +30,18 @@ describe('SnackTrace API', () => {
     const response = await app.inject('/v1/days/2026-02-30')
     expect(response.statusCode).to.equal(400)
     expect(response.json()).to.deep.include({status: 400, code: 'VALIDATION_ERROR', message: 'date must be a real ISO date'})
+  })
+
+  it('reports unhealthy when a required FoodNoms table cannot be queried', async () => {
+    const path = createFixture()
+    const app = await buildApp({dbPath: path, logger: false}); apps.push(app)
+    expect((await app.inject('/health')).json()).to.deep.equal({status: 'ok'})
+    const writer = new Database(path)
+    writer.exec('DROP TABLE goalRuleRecord')
+    writer.close()
+    const response = await app.inject('/health')
+    expect(response.statusCode).to.equal(503)
+    expect(response.json()).to.deep.equal({status: 503, code: 'DATABASE_UNAVAILABLE', message: 'FoodNoms database is unavailable'})
   })
 
   it('rejects unknown query parameters, invalid ranges, bad cursors, and missing foods', async () => {

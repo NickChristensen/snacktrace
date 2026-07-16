@@ -64,6 +64,7 @@ const GoalHistory = Type.Object({ruleId: Type.Union([Type.String(), Type.Null()]
 const GoalHistoryResponse = Type.Object({goalId: Type.Union([Type.String(), Type.Null()]), type: Type.String(), history: Type.Array(GoalHistory)}, {additionalProperties: false})
 const GoalSummary = Type.Object({type: Type.String(), averageActual: Type.Number(), statusCounts: Type.Object({below: Type.Optional(Type.Integer()), within: Type.Optional(Type.Integer()), above: Type.Optional(Type.Integer()), tracking: Type.Optional(Type.Integer())}, {additionalProperties: false})}, {additionalProperties: false})
 const EmptyQuery = Type.Object({}, {additionalProperties: false})
+const HEALTH_TABLES = ['foodEntryRecord', 'mealTypeRecord', 'goalRecord', 'goalRuleRecord'] as const
 
 export interface AppOptions {dbPath?: string; logger?: boolean}
 
@@ -98,7 +99,11 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
   app.addHook('onClose', async () => database?.close())
 
   app.get('/health', {schema: {tags: ['system'], summary: 'Check service health', operationId: 'health', querystring: EmptyQuery, response: {200: Type.Object({status: Type.Literal('ok')}, {additionalProperties: false}), 404: ErrorResponse, 503: ErrorResponse}}}, async (_request, reply) => {
-    try { getDatabase().sqlite.prepare('SELECT 1').get(); return {status: 'ok'} } catch { return reply.code(503).send({status: 503, code: 'DATABASE_UNAVAILABLE', message: 'FoodNoms database is unavailable'}) }
+    try {
+      const db = getDatabase()
+      db.read(() => { for (const table of HEALTH_TABLES) db.sqlite.prepare(`SELECT 1 FROM ${table} LIMIT 1`).get() })
+      return {status: 'ok'}
+    } catch { return reply.code(503).send({status: 503, code: 'DATABASE_UNAVAILABLE', message: 'FoodNoms database is unavailable'}) }
   })
   app.get('/openapi.json', {schema: {tags: ['system'], summary: 'Get the OpenAPI document', operationId: 'getOpenApi', querystring: EmptyQuery, response: {200: Type.Object({openapi: Type.Literal('3.1.2')}, {additionalProperties: true}), 404: ErrorResponse}}}, async () => app.swagger())
 
