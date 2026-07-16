@@ -62,6 +62,27 @@ describe('SnackTrace API', () => {
     expect(undated.name).to.equal('Undated')
   })
 
+  it('completely and deterministically paginates snapshots without timestamps', async () => {
+    const app = await buildApp({dbPath: createFixture(), logger: false}); apps.push(app)
+    for (const [sort, expected] of [
+      ['name', ['aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'dddddddd-dddd-dddd-dddd-dddddddddddd', 'cccccccc-cccc-cccc-cccc-cccccccccccc']],
+      ['-lastLoggedAt', ['cccccccc-cccc-cccc-cccc-cccccccccccc', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'dddddddd-dddd-dddd-dddd-dddddddddddd']],
+    ] as const) {
+      const ids: string[] = []
+      let cursor: string | undefined
+      do {
+        const query = new URLSearchParams({limit: '1', sort})
+        if (cursor) query.set('cursor', cursor)
+        const response = await app.inject(`/v1/foods?${query}`)
+        expect(response.statusCode).to.equal(200)
+        const page = response.json()
+        ids.push(page.items[0].foodId)
+        cursor = page.nextCursor
+      } while (cursor)
+      expect(ids).to.deep.equal(expected)
+    }
+  })
+
   it('builds the OpenAPI document without a database and exposes every documented path', async () => {
     const app = await buildApp({logger: false}); apps.push(app)
     await app.ready()

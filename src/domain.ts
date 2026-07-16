@@ -213,21 +213,32 @@ export function allGoals(db: FoodNomsDatabase) {
 }
 
 export function listFoods(db: FoodNomsDatabase, options: {q?: string; limit: number; sort: 'name' | '-lastLoggedAt'; cursor?: string}) {
-  let cursor: {name: string; date: string; id: string; sort: 'name' | '-lastLoggedAt'; q: string} | undefined
+  let cursor: {name: string; date: string | null; id: string; sort: 'name' | '-lastLoggedAt'; q: string} | undefined
   if (options.cursor) {
     try { cursor = JSON.parse(Buffer.from(options.cursor, 'base64url').toString('utf8')) as typeof cursor } catch { throw new Error('Invalid cursor') }
-    if (!cursor || typeof cursor.name !== 'string' || typeof cursor.date !== 'string' || typeof cursor.id !== 'string' || cursor.sort !== options.sort || cursor.q !== (options.q ?? '')) throw new Error('Invalid cursor')
+    if (!cursor || typeof cursor.name !== 'string' || (typeof cursor.date !== 'string' && cursor.date !== null) || typeof cursor.id !== 'string' || cursor.sort !== options.sort || cursor.q !== (options.q ?? '')) throw new Error('Invalid cursor')
   }
   const clauses = ['foodID IS NOT NULL']
   const params: unknown[] = []
   if (options.q) { clauses.push('(name LIKE ? COLLATE NOCASE OR brandOwner LIKE ? COLLATE NOCASE)'); params.push(`%${options.q}%`, `%${options.q}%`) }
   if (cursor) {
+    const cursorIsUndated = cursor.date === null || cursor.date === ''
     if (options.sort === 'name') {
-      clauses.push('(name COLLATE NOCASE > ? OR (name COLLATE NOCASE = ? AND (lastLoggedAt < ? OR (lastLoggedAt = ? AND foodKey > ?))))')
-      params.push(cursor.name, cursor.name, cursor.date, cursor.date, cursor.id)
+      if (cursorIsUndated) {
+        clauses.push('(name COLLATE NOCASE > ? OR (name COLLATE NOCASE = ? AND lastLoggedAt IS NULL AND foodKey > ?))')
+        params.push(cursor.name, cursor.name, cursor.id)
+      } else {
+        clauses.push('(name COLLATE NOCASE > ? OR (name COLLATE NOCASE = ? AND (lastLoggedAt IS NULL OR lastLoggedAt < ? OR (lastLoggedAt = ? AND foodKey > ?))))')
+        params.push(cursor.name, cursor.name, cursor.date, cursor.date, cursor.id)
+      }
     } else {
-      clauses.push('(lastLoggedAt < ? OR (lastLoggedAt = ? AND (name COLLATE NOCASE > ? OR (name COLLATE NOCASE = ? AND foodKey > ?))))')
-      params.push(cursor.date, cursor.date, cursor.name, cursor.name, cursor.id)
+      if (cursorIsUndated) {
+        clauses.push('(lastLoggedAt IS NULL AND (name COLLATE NOCASE > ? OR (name COLLATE NOCASE = ? AND foodKey > ?)))')
+        params.push(cursor.name, cursor.name, cursor.id)
+      } else {
+        clauses.push('(lastLoggedAt IS NULL OR lastLoggedAt < ? OR (lastLoggedAt = ? AND (name COLLATE NOCASE > ? OR (name COLLATE NOCASE = ? AND foodKey > ?))))')
+        params.push(cursor.date, cursor.date, cursor.name, cursor.name, cursor.id)
+      }
     }
   }
   const order = options.sort === 'name' ? 'name COLLATE NOCASE ASC, lastLoggedAt DESC, foodKey ASC' : 'lastLoggedAt DESC, name COLLATE NOCASE ASC, foodKey ASC'
@@ -236,7 +247,7 @@ export function listFoods(db: FoodNomsDatabase, options: {q?: string; limit: num
   const selected = rows.slice(0, options.limit)
   const foods = selected.map((row) => ({foodId: normalizeId(row.foodID), name: row.name ?? '', brandOwner: row.brandOwner, baseAmount: numeric(row.baseAmount), baseUnit: row.baseUnit, source: row.source, barcode: row.barcode, lastLoggedAt: formatTimestamp(row.lastLoggedAt), nutrients: parseNutrients(row.nutrients)}))
   const last = selected.at(-1)
-  const nextCursor = rows.length > options.limit && last ? Buffer.from(JSON.stringify({name: last.name ?? '', date: last.lastLoggedAt ?? '', id: last.foodKey, sort: options.sort, q: options.q ?? ''})).toString('base64url') : undefined
+  const nextCursor = rows.length > options.limit && last ? Buffer.from(JSON.stringify({name: last.name ?? '', date: last.lastLoggedAt, id: last.foodKey, sort: options.sort, q: options.q ?? ''})).toString('base64url') : undefined
   return nextCursor ? {items: foods, nextCursor} : {items: foods}
 }
 
