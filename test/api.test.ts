@@ -18,7 +18,9 @@ describe('SnackTrace API', () => {
     const entries = body.meals[0].entries
     expect(entries).to.have.length(2)
     expect(entries[0].entryId).to.equal('00112233-4455-6677-8899-aabbccddeeff')
+    expect(entries[0]).to.include({calories: 95})
     expect(entries[0].nutrients.carbs).to.equal(23.75)
+    expect(entries[0].nutrients).not.to.have.property('calories')
     expect(entries[0].nutrients).to.include({biotin: 1.9, chlorine: 2.85, sugarsAdded: 4.75})
     expect(body.goals.find((goal: {type: string}) => goal.type === 'calorie')).to.include({actual: 100, status: 'above', ratio: 1.1111})
     expect(body.goals.find((goal: {type: string}) => goal.type === 'carbohydrate')).to.include({status: 'within', ratio: null})
@@ -136,6 +138,32 @@ describe('SnackTrace API', () => {
     expect(body.goalSummary.find((goal: {type: string}) => goal.type === 'calorie').statusCounts).to.deep.equal({above: 1, within: 1})
   })
 
+  it('standardizes public calories as sibling fields', async () => {
+    const app = await buildApp({dbPath: createFixture(), logger: false}); apps.push(app)
+    const day = (await app.inject('/v1/days/2026-07-12')).json()
+    const entries = (await app.inject('/v1/days/2026-07-12/entries')).json()
+    const meals = (await app.inject('/v1/days/2026-07-12/meals')).json()
+    const range = (await app.inject('/v1/days?from=2026-07-12&to=2026-07-13')).json()
+    const foods = (await app.inject('/v1/foods')).json()
+    const food = (await app.inject('/v1/foods/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa')).json()
+    const expectTotals = (totals: {calories: number; nutrients: Record<string, number>}) => {
+      expect(totals.calories).to.be.a('number')
+      expect(totals.nutrients).not.to.have.property('calories')
+    }
+    expectTotals(day.totals)
+    for (const meal of day.meals) { expectTotals(meal.totals); for (const item of meal.entries) { expect(item.calories).to.be.a('number'); expect(item.nutrients).not.to.have.property('calories') } }
+    for (const item of entries.items) { expect(item.calories).to.be.a('number'); expect(item.nutrients).not.to.have.property('calories') }
+    for (const meal of meals.items) { expectTotals(meal.totals); for (const item of meal.entries) expect(item.nutrients).not.to.have.property('calories') }
+    expectTotals(range.totals)
+    expectTotals(range.averages)
+    for (const item of range.items) expectTotals(item.totals)
+    for (const item of foods.items) expect(item.nutrients).not.to.have.property('calories')
+    expect(food).to.include({calories: 100})
+    expect(food.nutrients).not.to.have.property('calories')
+    const rawCalorieAbsent = foods.items.find((item: {foodId: string}) => item.foodId === 'dddddddd-dddd-dddd-dddd-dddddddddddd')
+    expect(rawCalorieAbsent).not.to.have.property('calories')
+  })
+
   it('accepts inclusive ranges through 366 days and rejects longer ranges', async () => {
     const app = await buildApp({dbPath: createFixture(), logger: false}); apps.push(app)
     const maximum = await app.inject('/v1/days?from=2024-01-01&to=2024-12-31')
@@ -200,6 +228,14 @@ describe('SnackTrace API', () => {
     const daysRange = document.paths['/v1/days'] as {get: {summary: string; parameters: Array<{name: string; description: string}>}}
     expect(daysRange.get.summary).to.equal('Get an inclusive day range of at most 366 days')
     expect(daysRange.get.parameters.find((parameter) => parameter.name === 'to')?.description).to.include('at most 366 days')
+    const visit = (value: unknown): void => {
+      if (!value || typeof value !== 'object') return
+      const schema = value as {properties?: Record<string, {properties?: Record<string, unknown>} | unknown>}
+      const nutrients = schema.properties?.nutrients as {properties?: Record<string, unknown>} | undefined
+      if (nutrients) expect(nutrients.properties).not.to.have.property('calories')
+      for (const child of Object.values(value as Record<string, unknown>)) visit(child)
+    }
+    visit(document)
     execFileSync(process.execPath, ['--import', 'tsx', 'src/generate-openapi.ts'], {cwd: process.cwd(), env: {...process.env, FOODNOMS_DB_PATH: ''}})
   })
 })

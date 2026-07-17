@@ -91,7 +91,12 @@ function scaleNutrients(row: EntryRow): Nutrients {
   const raw = parseNutrients(row.nutrients)
   const rawCalories = raw.calories
   const scale = rawCalories && rawCalories > 0 ? (row.calories ?? 0) / rawCalories : (row.baseAmount ?? 0) > 0 ? (row.quantity ?? 0) / (row.baseAmount ?? 1) : 1
-  return Object.fromEntries(Object.entries(raw).map(([name, amount]) => [name, round(amount * scale)]))
+  return Object.fromEntries(Object.entries(raw).flatMap(([name, amount]) => name === 'calories' ? [] : [[name, round(amount * scale)]]))
+}
+
+function foodNutrients(value: string | Buffer | null): {calories?: number; nutrients: Nutrients} {
+  const {calories, ...nutrients} = parseNutrients(value)
+  return calories === undefined ? {nutrients} : {calories, nutrients}
 }
 
 function sumNutrients(items: Nutrients[]): Nutrients {
@@ -256,7 +261,7 @@ export function listFoods(db: FoodNomsDatabase, options: {q?: string; limit: num
   const sql = `WITH latest AS (SELECT foodID, MAX(date) AS lastLoggedAt FROM foodEntryRecord WHERE foodID IS NOT NULL GROUP BY foodID), snapshots AS (SELECT e.*, l.lastLoggedAt, hex(e.foodID) AS foodKey FROM foodEntryRecord e JOIN latest l ON l.foodID = e.foodID AND e.date IS l.lastLoggedAt WHERE e.id = (SELECT MAX(candidate.id) FROM foodEntryRecord candidate WHERE candidate.foodID = e.foodID AND candidate.date IS l.lastLoggedAt)) SELECT id, foodID, name, brandOwner, baseAmount, baseUnit, nutrients, source, barcode, lastLoggedAt, foodKey FROM snapshots WHERE ${clauses.join(' AND ')} ORDER BY ${order} LIMIT ?`
   const rows = db.sqlite.prepare(sql).all(...params, options.limit + 1) as Array<EntryRow & {lastLoggedAt: string | null; foodKey: string}>
   const selected = rows.slice(0, options.limit)
-  const foods = selected.map((row) => ({foodId: normalizeId(row.foodID), name: row.name ?? '', brandOwner: row.brandOwner, baseAmount: numeric(row.baseAmount), baseUnit: row.baseUnit, source: row.source, barcode: row.barcode, lastLoggedAt: formatTimestamp(row.lastLoggedAt), nutrients: parseNutrients(row.nutrients)}))
+  const foods = selected.map((row) => ({foodId: normalizeId(row.foodID), name: row.name ?? '', brandOwner: row.brandOwner, baseAmount: numeric(row.baseAmount), baseUnit: row.baseUnit, source: row.source, barcode: row.barcode, lastLoggedAt: formatTimestamp(row.lastLoggedAt), ...foodNutrients(row.nutrients)}))
   const last = selected.at(-1)
   const nextCursor = rows.length > options.limit && last ? Buffer.from(JSON.stringify({name: last.name ?? '', date: last.lastLoggedAt, id: last.foodKey, sort: options.sort, q: options.q ?? ''})).toString('base64url') : undefined
   return nextCursor ? {items: foods, nextCursor} : {items: foods}
@@ -268,5 +273,5 @@ export function foodSnapshot(db: FoodNomsDatabase, foodId: string) {
     ? db.sqlite.prepare('SELECT id, foodID, name, brandOwner, baseAmount, baseUnit, nutrients, source, barcode, date FROM foodEntryRecord WHERE foodID = ? OR foodID = ? ORDER BY date DESC, id DESC LIMIT 1').get(foodId, binaryId)
     : db.sqlite.prepare('SELECT id, foodID, name, brandOwner, baseAmount, baseUnit, nutrients, source, barcode, date FROM foodEntryRecord WHERE foodID = ? ORDER BY date DESC, id DESC LIMIT 1').get(foodId)) as EntryRow | undefined
   if (!row) return undefined
-  return {foodId: normalizeId(row.foodID), name: row.name ?? '', brandOwner: row.brandOwner, baseAmount: numeric(row.baseAmount), baseUnit: row.baseUnit, source: row.source, barcode: row.barcode, lastLoggedAt: formatTimestamp(row.date), nutrients: parseNutrients(row.nutrients)}
+  return {foodId: normalizeId(row.foodID), name: row.name ?? '', brandOwner: row.brandOwner, baseAmount: numeric(row.baseAmount), baseUnit: row.baseUnit, source: row.source, barcode: row.barcode, lastLoggedAt: formatTimestamp(row.date), ...foodNutrients(row.nutrients)}
 }

@@ -12,7 +12,6 @@ const Nutrients = Type.Partial(Type.Object({
   biotin: amount('micrograms'),
   caffeine: amount('milligrams'),
   calcium: amount('milligrams'),
-  calories: amount('kilocalories'),
   carbs: amount('grams'),
   chlorine: amount('milligrams'),
   cholesterol: amount('milligrams'),
@@ -59,7 +58,7 @@ const GoalResponse = Type.Object({goalId: Type.Union([Type.String(), Type.Null()
 const MealResponse = Type.Object({mealTypeId: Type.Union([Type.String(), Type.Null()]), name: Type.String(), sortIndex: Type.Integer(), totals: Totals, entries: Type.Array(EntryResponse)}, {additionalProperties: false})
 const DayResponse = Type.Object({date: DateString, totals: Totals, goals: Type.Array(GoalResponse), meals: Type.Array(MealResponse)}, {additionalProperties: false})
 const RangeDayResponse = Type.Object({date: DateString, totals: Totals, goals: Type.Array(GoalResponse)}, {additionalProperties: false})
-const FoodResponse = Type.Object({foodId: Type.Union([Type.String(), Type.Null()]), name: Type.String(), brandOwner: Type.Union([Type.String(), Type.Null()]), baseAmount: Type.Optional(Type.Number()), baseUnit: Type.Union([Type.String(), Type.Null()]), source: Type.Union([Type.String(), Type.Null()]), barcode: Type.Union([Type.String(), Type.Null()]), lastLoggedAt: Type.Union([Type.String(), Type.Null()]), nutrients: Nutrients}, {additionalProperties: false})
+const FoodResponse = Type.Object({foodId: Type.Union([Type.String(), Type.Null()]), name: Type.String(), brandOwner: Type.Union([Type.String(), Type.Null()]), baseAmount: Type.Optional(Type.Number()), baseUnit: Type.Union([Type.String(), Type.Null()]), source: Type.Union([Type.String(), Type.Null()]), barcode: Type.Union([Type.String(), Type.Null()]), lastLoggedAt: Type.Union([Type.String(), Type.Null()]), calories: Type.Optional(Type.Number()), nutrients: Nutrients}, {additionalProperties: false})
 const GoalHistory = Type.Object({ruleId: Type.Union([Type.String(), Type.Null()]), effectiveDate: Type.Union([DateString, Type.Null()]), startDay: Type.Union([Type.Number(), Type.Null()]), weekday: Type.Union([Type.Integer(), Type.Null()]), isOverride: Type.Boolean(), mode: Type.Union([Type.Literal('maximum'), Type.Literal('minimum'), Type.Literal('range'), Type.Literal('tracking')]), lowerBound: Type.Union([Type.Number(), Type.Null()]), upperBound: Type.Union([Type.Number(), Type.Null()])}, {additionalProperties: false})
 const GoalHistoryResponse = Type.Object({goalId: Type.Union([Type.String(), Type.Null()]), type: Type.String(), history: Type.Array(GoalHistory)}, {additionalProperties: false})
 const GoalSummary = Type.Object({type: Type.String(), averageActual: Type.Number(), statusCounts: Type.Object({below: Type.Optional(Type.Integer()), within: Type.Optional(Type.Integer()), above: Type.Optional(Type.Integer()), tracking: Type.Optional(Type.Integer())}, {additionalProperties: false})}, {additionalProperties: false})

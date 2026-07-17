@@ -373,10 +373,6 @@
                               "description": "Amount in milligrams.",
                               "type": "number"
                             },
-                            "calories": {
-                              "description": "Amount in kilocalories.",
-                              "type": "number"
-                            },
                             "carbs": {
                               "description": "Amount in grams.",
                               "type": "number"
@@ -714,10 +710,6 @@
                                     "description": "Amount in milligrams.",
                                     "type": "number"
                                   },
-                                  "calories": {
-                                    "description": "Amount in kilocalories.",
-                                    "type": "number"
-                                  },
                                   "carbs": {
                                     "description": "Amount in grams.",
                                     "type": "number"
@@ -1007,10 +999,6 @@
                                     },
                                     "calcium": {
                                       "description": "Amount in milligrams.",
-                                      "type": "number"
-                                    },
-                                    "calories": {
-                                      "description": "Amount in kilocalories.",
                                       "type": "number"
                                     },
                                     "carbs": {
@@ -1443,10 +1431,6 @@
                                 "description": "Amount in milligrams.",
                                 "type": "number"
                               },
-                              "calories": {
-                                "description": "Amount in kilocalories.",
-                                "type": "number"
-                              },
                               "carbs": {
                                 "description": "Amount in grams.",
                                 "type": "number"
@@ -1799,10 +1783,6 @@
                                     "description": "Amount in milligrams.",
                                     "type": "number"
                                   },
-                                  "calories": {
-                                    "description": "Amount in kilocalories.",
-                                    "type": "number"
-                                  },
                                   "carbs": {
                                     "description": "Amount in grams.",
                                     "type": "number"
@@ -2092,10 +2072,6 @@
                                     },
                                     "calcium": {
                                       "description": "Amount in milligrams.",
-                                      "type": "number"
-                                    },
-                                    "calories": {
-                                      "description": "Amount in kilocalories.",
                                       "type": "number"
                                     },
                                     "carbs": {
@@ -2703,10 +2679,6 @@
                               "description": "Amount in milligrams.",
                               "type": "number"
                             },
-                            "calories": {
-                              "description": "Amount in kilocalories.",
-                              "type": "number"
-                            },
                             "carbs": {
                               "description": "Amount in grams.",
                               "type": "number"
@@ -2892,10 +2864,6 @@
                             },
                             "calcium": {
                               "description": "Amount in milligrams.",
-                              "type": "number"
-                            },
-                            "calories": {
-                              "description": "Amount in kilocalories.",
                               "type": "number"
                             },
                             "carbs": {
@@ -3099,10 +3067,6 @@
                                   },
                                   "calcium": {
                                     "description": "Amount in milligrams.",
-                                    "type": "number"
-                                  },
-                                  "calories": {
-                                    "description": "Amount in kilocalories.",
                                     "type": "number"
                                   },
                                   "carbs": {
@@ -4012,6 +3976,9 @@
                               }
                             ]
                           },
+                          "calories": {
+                            "type": "number"
+                          },
                           "nutrients": {
                             "type": "object",
                             "properties": {
@@ -4029,10 +3996,6 @@
                               },
                               "calcium": {
                                 "description": "Amount in milligrams.",
-                                "type": "number"
-                              },
-                              "calories": {
-                                "description": "Amount in kilocalories.",
                                 "type": "number"
                               },
                               "carbs": {
@@ -4398,6 +4361,9 @@
                         }
                       ]
                     },
+                    "calories": {
+                      "type": "number"
+                    },
                     "nutrients": {
                       "type": "object",
                       "properties": {
@@ -4415,10 +4381,6 @@
                         },
                         "calcium": {
                           "description": "Amount in milligrams.",
-                          "type": "number"
-                        },
-                        "calories": {
-                          "description": "Amount in kilocalories.",
                           "type": "number"
                         },
                         "carbs": {

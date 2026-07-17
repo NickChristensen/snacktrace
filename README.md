@@ -21,7 +21,7 @@ The API listens on `127.0.0.1:3000` by default. `GET /health` returns `{"status"
 - `GET /v1/foods?q=&limit=50&cursor=&sort=name|-lastLoggedAt` returns deterministic latest food snapshots. `cursor` is opaque and must be used with the same sort.
 - `GET /v1/foods/:foodId` returns the latest deterministic snapshot from entry history.
 
-Dates must be real `YYYY-MM-DD` ISO dates. Day and range endpoints intentionally exclude FoodNoms entries whose `day` is null; food history includes them because their timestamp remains meaningful. Entry BLOB UUIDs are normalized to lower-case canonical UUID strings. Nutrient values are optional numeric fields and per-entry nutrients are scaled to the logged quantity.
+Dates must be real `YYYY-MM-DD` ISO dates. Day and range endpoints intentionally exclude FoodNoms entries whose `day` is null; food history includes them because their timestamp remains meaningful. Entry BLOB UUIDs are normalized to lower-case canonical UUID strings. Nutrient values are optional numeric fields and per-entry nutrients are scaled to the logged quantity. Public `nutrients` objects never contain `calories`; calories are sibling fields on entries, totals, and food snapshots when present in the raw nutrient JSON.
 
 Goal resolution chooses the most recent active weekday override for the Foundation weekday (`1` Sunday through `7` Saturday), then the most recent active generic rule. Status is `below`, `within`, `above`, or `tracking`; ratio appears only when exactly one non-zero goal bound is present.
 
