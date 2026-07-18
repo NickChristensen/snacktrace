@@ -27,6 +27,25 @@ type EntryRow = {
   brandOwner: string | null
   barcode: string | null
   source: string | null
+  collectionEditID?: string | Buffer | null
+  collectionSortIndex?: number | null
+  measure?: string | Buffer | null
+}
+
+type CollectionRow = {
+  collectionID: string | Buffer | null
+  collectionEditID: string | Buffer | null
+  name: string | null
+  collectionType: number
+  dateCreated: string | null
+  dateLastUpdated: string | null
+  servings: number | null
+  servingSizeUnit: string | null
+  totalServingSize: number | null
+  color: string | null
+  icon: string | null
+  urlString: string | null
+  notes: string | null
 }
 
 type GoalRule = {
@@ -80,6 +99,26 @@ function parseNutrients(value: string | Buffer | null): Nutrients {
     }))
   } catch {
     return {}
+  }
+}
+
+type Measure = {descriptionQuantity?: number; descriptionText?: string; unit?: string; value?: number; traits?: number}
+
+function parseMeasure(value: string | Buffer | null): Measure | undefined {
+  if (value === null || value === undefined) return undefined
+  try {
+    const parsed = JSON.parse(Buffer.isBuffer(value) ? value.toString('utf8') : value) as unknown
+    if (!parsed || Array.isArray(parsed) || typeof parsed !== 'object') return undefined
+    const source = parsed as Record<string, unknown>
+    const measure: Measure = {}
+    if (typeof source.descriptionQuantity === 'number' && Number.isFinite(source.descriptionQuantity)) measure.descriptionQuantity = round(source.descriptionQuantity)
+    if (typeof source.descriptionText === 'string') measure.descriptionText = source.descriptionText
+    if (typeof source.unit === 'string') measure.unit = source.unit
+    if (typeof source.value === 'number' && Number.isFinite(source.value)) measure.value = round(source.value)
+    if (typeof source.traits === 'number' && Number.isFinite(source.traits)) measure.traits = round(source.traits)
+    return Object.keys(measure).length ? measure : undefined
+  } catch {
+    return undefined
   }
 }
 
@@ -274,4 +313,51 @@ export function foodSnapshot(db: FoodNomsDatabase, foodId: string) {
     : db.sqlite.prepare('SELECT id, foodID, name, brandOwner, baseAmount, baseUnit, nutrients, source, barcode, date FROM foodEntryRecord WHERE foodID = ? ORDER BY date DESC, id DESC LIMIT 1').get(foodId)) as EntryRow | undefined
   if (!row) return undefined
   return {foodId: normalizeId(row.foodID), name: row.name ?? '', brandOwner: row.brandOwner, baseAmount: numeric(row.baseAmount), baseUnit: row.baseUnit, source: row.source, barcode: row.barcode, lastLoggedAt: formatTimestamp(row.date), ...foodNutrients(row.nutrients)}
+}
+
+function component(row: EntryRow) {
+  const measure = parseMeasure(row.measure ?? null)
+  return {
+    name: row.name ?? '',
+    collectionSortIndex: typeof row.collectionSortIndex === 'number' && Number.isInteger(row.collectionSortIndex) ? row.collectionSortIndex : null,
+    quantity: numeric(row.quantity),
+    baseAmount: numeric(row.baseAmount),
+    baseUnit: row.baseUnit ?? null,
+    ...(measure ? {measure} : {}),
+    calories: round(row.calories ?? 0),
+    nutrients: scaleNutrients(row),
+  }
+}
+
+export function listLibrary(db: FoodNomsDatabase, collectionType: 2 | 3) {
+  const collections = db.sqlite.prepare(`SELECT collectionID, collectionEditID, name, collectionType, dateCreated, dateLastUpdated, servings, servingSizeUnit, totalServingSize, color, icon, urlString, notes FROM foodCollectionRecord WHERE collectionType = ? ORDER BY name COLLATE NOCASE ASC, hex(collectionID) ASC`).all(collectionType) as CollectionRow[]
+  const entries = db.sqlite.prepare(`SELECT id, entryID, date, tzID, day, mealTypeID, name, calories, quantity, baseAmount, baseUnit, nutrients, foodID, brandOwner, barcode, source, collectionEditID, collectionSortIndex, measure FROM foodEntryRecord WHERE collectionEditID IS NOT NULL ORDER BY collectionSortIndex IS NULL ASC, collectionSortIndex ASC, id ASC`).all() as EntryRow[]
+  const byEditId = new Map<string, EntryRow[]>()
+  for (const row of entries) {
+    const key = normalizeId(row.collectionEditID ?? null)
+    if (key !== null) byEditId.set(key, [...(byEditId.get(key) ?? []), row])
+  }
+  return {
+    items: collections.map((row) => {
+      const metadata = Object.fromEntries(Object.entries({color: row.color, icon: row.icon, url: row.urlString, notes: row.notes}).filter(([, value]) => value !== null))
+      const servings = numeric(row.servings)
+      const recipeServing = Object.fromEntries(Object.entries({servings, servingSizeUnit: row.servingSizeUnit, totalServingSize: numeric(row.totalServingSize)}).filter(([, value]) => value !== null && value !== undefined))
+      const components = (byEditId.get(normalizeId(row.collectionEditID) ?? '') ?? []).map(component)
+      const nutrients = sumNutrients(components.map((item) => item.nutrients))
+      const totals = {calories: round(components.reduce((total, item) => total + item.calories, 0)), nutrients}
+      return {
+        collectionId: normalizeId(row.collectionID),
+        kind: collectionType === 3 ? 'recipe' as const : 'meal' as const,
+        type: row.collectionType,
+        name: row.name ?? '',
+        createdAt: formatTimestamp(row.dateCreated),
+        updatedAt: formatTimestamp(row.dateLastUpdated),
+        ...(Object.keys(metadata).length ? {metadata} : {}),
+        ...(collectionType === 3 && Object.keys(recipeServing).length ? {recipe: recipeServing} : {}),
+        totals,
+        ...(collectionType === 3 && servings !== undefined && servings > 0 ? {servingTotals: {calories: round(totals.calories / servings), nutrients: Object.fromEntries(Object.entries(nutrients).map(([name, amount]) => [name, round(amount / servings)]))}} : {}),
+        components,
+      }
+    }),
+  }
 }

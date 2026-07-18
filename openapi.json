@@ -3820,6 +3820,1684 @@
         }
       }
     },
+    "/v1/library/recipes": {
+      "get": {
+        "operationId": "listLibraryRecipes",
+        "summary": "List saved recipes",
+        "tags": [
+          "library"
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "type": "object",
+                  "required": [
+                    "items"
+                  ],
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "additionalProperties": false,
+                        "type": "object",
+                        "required": [
+                          "collectionId",
+                          "kind",
+                          "type",
+                          "name",
+                          "createdAt",
+                          "updatedAt",
+                          "totals",
+                          "components"
+                        ],
+                        "properties": {
+                          "collectionId": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "kind": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "recipe"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "meal"
+                                ]
+                              }
+                            ]
+                          },
+                          "type": {
+                            "type": "integer"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "createdAt": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "updatedAt": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "metadata": {
+                            "additionalProperties": false,
+                            "type": "object",
+                            "properties": {
+                              "color": {
+                                "type": "string"
+                              },
+                              "icon": {
+                                "type": "string"
+                              },
+                              "url": {
+                                "type": "string"
+                              },
+                              "notes": {
+                                "type": "string"
+                              }
+                            }
+                          },
+                          "recipe": {
+                            "additionalProperties": false,
+                            "type": "object",
+                            "properties": {
+                              "servings": {
+                                "type": "number"
+                              },
+                              "servingSizeUnit": {
+                                "type": "string"
+                              },
+                              "totalServingSize": {
+                                "type": "number"
+                              }
+                            }
+                          },
+                          "totals": {
+                            "additionalProperties": false,
+                            "type": "object",
+                            "required": [
+                              "calories",
+                              "nutrients"
+                            ],
+                            "properties": {
+                              "calories": {
+                                "type": "number"
+                              },
+                              "nutrients": {
+                                "type": "object",
+                                "properties": {
+                                  "alcohol": {
+                                    "description": "Amount in grams.",
+                                    "type": "number"
+                                  },
+                                  "biotin": {
+                                    "description": "Amount in micrograms.",
+                                    "type": "number"
+                                  },
+                                  "caffeine": {
+                                    "description": "Amount in milligrams.",
+                                    "type": "number"
+                                  },
+                                  "calcium": {
+                                    "description": "Amount in milligrams.",
+                                    "type": "number"
+                                  },
+                                  "carbs": {
+                                    "description": "Amount in grams.",
+                                    "type": "number"
+                                  },
+                                  "chlorine": {
+                                    "description": "Amount in milligrams.",
+                                    "type": "number"
+                                  },
+                                  "cholesterol": {
+                                    "description": "Amount in milligrams.",
+                                    "type": "number"
+                                  },
+                                  "chromium": {
+                                    "description": "Amount in micrograms.",
+                                    "type": "number"
+                                  },
+                                  "copper": {
+                                    "description": "Amount in milligrams.",
+                                    "type": "number"
+                                  },
+                                  "fat": {
+                                    "description": "Amount in grams.",
+                                    "type": "number"
+                                  },
+                                  "fatMonounsaturated": {
+                                    "description": "Amount in grams.",
+                                    "type": "number"
+                                  },
+                                  "fatPolyunsaturated": {
+                                    "description": "Amount in grams.",
+                                    "type": "number"
+                                  },
+                                  "fatSaturated": {
+                                    "description": "Amount in grams.",
+                                    "type": "number"
+                                  },
+                                  "fatTrans": {
+                                    "description": "Amount in grams.",
+                                    "type": "number"
+                                  },
+                                  "fiber": {
+                                    "description": "Amount in grams.",
+                                    "type": "number"
+                                  },
+                                  "folate": {
+                                    "description": "Amount in micrograms.",
+                                    "type": "number"
+                                  },
+                                  "iodine": {
+                                    "description": "Amount in micrograms.",
+                                    "type": "number"
+                                  },
+                                  "iron": {
+                                    "description": "Amount in milligrams.",
+                                    "type": "number"
+                                  },
+                                  "magnesium": {
+                                    "description": "Amount in milligrams.",
+                                    "type": "number"
+                                  },
+                                  "manganese": {
+                                    "description": "Amount in milligrams.",
+                                    "type": "number"
+                                  },
+                                  "molybdenum": {
+                                    "description": "Amount in micrograms.",
+                                    "type": "number"
+                                  },
+                                  "niacin": {
+                                    "description": "Amount in milligrams.",
+                                    "type": "number"
+                                  },
+                                  "pantothenicAcid": {
+                                    "description": "Amount in milligrams.",
+                                    "type": "number"
+                                  },
+                                  "phosphorus": {
+                                    "description": "Amount in milligrams.",
+                                    "type": "number"
+                                  },
+                                  "potassium": {
+                                    "description": "Amount in milligrams.",
+                                    "type": "number"
+                                  },
+                                  "protein": {
+                                    "description": "Amount in grams.",
+                                    "type": "number"
+                                  },
+                                  "riboflavin": {
+                                    "description": "Amount in milligrams.",
+                                    "type": "number"
+                                  },
+                                  "selenium": {
+                                    "description": "Amount in micrograms.",
+                                    "type": "number"
+                                  },
+                                  "sodium": {
+                                    "description": "Amount in milligrams.",
+                                    "type": "number"
+                                  },
+                                  "sugarAlcohols": {
+                                    "description": "Amount in grams.",
+                                    "type": "number"
+                                  },
+                                  "sugars": {
+                                    "description": "Amount in grams.",
+                                    "type": "number"
+                                  },
+                                  "sugarsAdded": {
+                                    "description": "Amount in grams.",
+                                    "type": "number"
+                                  },
+                                  "thiamin": {
+                                    "description": "Amount in milligrams.",
+                                    "type": "number"
+                                  },
+                                  "vitaminA": {
+                                    "description": "Amount in micrograms RAE.",
+                                    "type": "number"
+                                  },
+                                  "vitaminB12": {
+                                    "description": "Amount in micrograms.",
+                                    "type": "number"
+                                  },
+                                  "vitaminB6": {
+                                    "description": "Amount in milligrams.",
+                                    "type": "number"
+                                  },
+                                  "vitaminC": {
+                                    "description": "Amount in milligrams.",
+                                    "type": "number"
+                                  },
+                                  "vitaminD": {
+                                    "description": "Amount in micrograms.",
+                                    "type": "number"
+                                  },
+                                  "vitaminE": {
+                                    "description": "Amount in milligrams.",
+                                    "type": "number"
+                                  },
+                                  "vitaminK": {
+                                    "description": "Amount in micrograms.",
+                                    "type": "number"
+                                  },
+                                  "water": {
+                                    "description": "Amount in grams.",
+                                    "type": "number"
+                                  },
+                                  "zinc": {
+                                    "description": "Amount in milligrams.",
+                                    "type": "number"
+                                  }
+                                },
+                                "additionalProperties": false
+                              }
+                            }
+                          },
+                          "servingTotals": {
+                            "additionalProperties": false,
+                            "type": "object",
+                            "required": [
+                              "calories",
+                              "nutrients"
+                            ],
+                            "properties": {
+                              "calories": {
+                                "type": "number"
+                              },
+                              "nutrients": {
+                                "type": "object",
+                                "properties": {
+                                  "alcohol": {
+                                    "description": "Amount in grams.",
+                                    "type": "number"
+                                  },
+                                  "biotin": {
+                                    "description": "Amount in micrograms.",
+                                    "type": "number"
+                                  },
+                                  "caffeine": {
+                                    "description": "Amount in milligrams.",
+                                    "type": "number"
+                                  },
+                                  "calcium": {
+                                    "description": "Amount in milligrams.",
+                                    "type": "number"
+                                  },
+                                  "carbs": {
+                                    "description": "Amount in grams.",
+                                    "type": "number"
+                                  },
+                                  "chlorine": {
+                                    "description": "Amount in milligrams.",
+                                    "type": "number"
+                                  },
+                                  "cholesterol": {
+                                    "description": "Amount in milligrams.",
+                                    "type": "number"
+                                  },
+                                  "chromium": {
+                                    "description": "Amount in micrograms.",
+                                    "type": "number"
+                                  },
+                                  "copper": {
+                                    "description": "Amount in milligrams.",
+                                    "type": "number"
+                                  },
+                                  "fat": {
+                                    "description": "Amount in grams.",
+                                    "type": "number"
+                                  },
+                                  "fatMonounsaturated": {
+                                    "description": "Amount in grams.",
+                                    "type": "number"
+                                  },
+                                  "fatPolyunsaturated": {
+                                    "description": "Amount in grams.",
+                                    "type": "number"
+                                  },
+                                  "fatSaturated": {
+                                    "description": "Amount in grams.",
+                                    "type": "number"
+                                  },
+                                  "fatTrans": {
+                                    "description": "Amount in grams.",
+                                    "type": "number"
+                                  },
+                                  "fiber": {
+                                    "description": "Amount in grams.",
+                                    "type": "number"
+                                  },
+                                  "folate": {
+                                    "description": "Amount in micrograms.",
+                                    "type": "number"
+                                  },
+                                  "iodine": {
+                                    "description": "Amount in micrograms.",
+                                    "type": "number"
+                                  },
+                                  "iron": {
+                                    "description": "Amount in milligrams.",
+                                    "type": "number"
+                                  },
+                                  "magnesium": {
+                                    "description": "Amount in milligrams.",
+                                    "type": "number"
+                                  },
+                                  "manganese": {
+                                    "description": "Amount in milligrams.",
+                                    "type": "number"
+                                  },
+                                  "molybdenum": {
+                                    "description": "Amount in micrograms.",
+                                    "type": "number"
+                                  },
+                                  "niacin": {
+                                    "description": "Amount in milligrams.",
+                                    "type": "number"
+                                  },
+                                  "pantothenicAcid": {
+                                    "description": "Amount in milligrams.",
+                                    "type": "number"
+                                  },
+                                  "phosphorus": {
+                                    "description": "Amount in milligrams.",
+                                    "type": "number"
+                                  },
+                                  "potassium": {
+                                    "description": "Amount in milligrams.",
+                                    "type": "number"
+                                  },
+                                  "protein": {
+                                    "description": "Amount in grams.",
+                                    "type": "number"
+                                  },
+                                  "riboflavin": {
+                                    "description": "Amount in milligrams.",
+                                    "type": "number"
+                                  },
+                                  "selenium": {
+                                    "description": "Amount in micrograms.",
+                                    "type": "number"
+                                  },
+                                  "sodium": {
+                                    "description": "Amount in milligrams.",
+                                    "type": "number"
+                                  },
+                                  "sugarAlcohols": {
+                                    "description": "Amount in grams.",
+                                    "type": "number"
+                                  },
+                                  "sugars": {
+                                    "description": "Amount in grams.",
+                                    "type": "number"
+                                  },
+                                  "sugarsAdded": {
+                                    "description": "Amount in grams.",
+                                    "type": "number"
+                                  },
+                                  "thiamin": {
+                                    "description": "Amount in milligrams.",
+                                    "type": "number"
+                                  },
+                                  "vitaminA": {
+                                    "description": "Amount in micrograms RAE.",
+                                    "type": "number"
+                                  },
+                                  "vitaminB12": {
+                                    "description": "Amount in micrograms.",
+                                    "type": "number"
+                                  },
+                                  "vitaminB6": {
+                                    "description": "Amount in milligrams.",
+                                    "type": "number"
+                                  },
+                                  "vitaminC": {
+                                    "description": "Amount in milligrams.",
+                                    "type": "number"
+                                  },
+                                  "vitaminD": {
+                                    "description": "Amount in micrograms.",
+                                    "type": "number"
+                                  },
+                                  "vitaminE": {
+                                    "description": "Amount in milligrams.",
+                                    "type": "number"
+                                  },
+                                  "vitaminK": {
+                                    "description": "Amount in micrograms.",
+                                    "type": "number"
+                                  },
+                                  "water": {
+                                    "description": "Amount in grams.",
+                                    "type": "number"
+                                  },
+                                  "zinc": {
+                                    "description": "Amount in milligrams.",
+                                    "type": "number"
+                                  }
+                                },
+                                "additionalProperties": false
+                              }
+                            }
+                          },
+                          "components": {
+                            "type": "array",
+                            "items": {
+                              "additionalProperties": false,
+                              "type": "object",
+                              "required": [
+                                "name",
+                                "collectionSortIndex",
+                                "baseUnit",
+                                "calories",
+                                "nutrients"
+                              ],
+                              "properties": {
+                                "name": {
+                                  "type": "string"
+                                },
+                                "collectionSortIndex": {
+                                  "anyOf": [
+                                    {
+                                      "type": "integer"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "quantity": {
+                                  "type": "number"
+                                },
+                                "baseAmount": {
+                                  "type": "number"
+                                },
+                                "baseUnit": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "measure": {
+                                  "additionalProperties": false,
+                                  "type": "object",
+                                  "properties": {
+                                    "descriptionQuantity": {
+                                      "type": "number"
+                                    },
+                                    "descriptionText": {
+                                      "type": "string"
+                                    },
+                                    "unit": {
+                                      "type": "string"
+                                    },
+                                    "value": {
+                                      "type": "number"
+                                    },
+                                    "traits": {
+                                      "type": "number"
+                                    }
+                                  },
+                                  "description": "Whitelisted public fields parsed from FoodNoms measure JSON."
+                                },
+                                "calories": {
+                                  "type": "number"
+                                },
+                                "nutrients": {
+                                  "type": "object",
+                                  "properties": {
+                                    "alcohol": {
+                                      "description": "Amount in grams.",
+                                      "type": "number"
+                                    },
+                                    "biotin": {
+                                      "description": "Amount in micrograms.",
+                                      "type": "number"
+                                    },
+                                    "caffeine": {
+                                      "description": "Amount in milligrams.",
+                                      "type": "number"
+                                    },
+                                    "calcium": {
+                                      "description": "Amount in milligrams.",
+                                      "type": "number"
+                                    },
+                                    "carbs": {
+                                      "description": "Amount in grams.",
+                                      "type": "number"
+                                    },
+                                    "chlorine": {
+                                      "description": "Amount in milligrams.",
+                                      "type": "number"
+                                    },
+                                    "cholesterol": {
+                                      "description": "Amount in milligrams.",
+                                      "type": "number"
+                                    },
+                                    "chromium": {
+                                      "description": "Amount in micrograms.",
+                                      "type": "number"
+                                    },
+                                    "copper": {
+                                      "description": "Amount in milligrams.",
+                                      "type": "number"
+                                    },
+                                    "fat": {
+                                      "description": "Amount in grams.",
+                                      "type": "number"
+                                    },
+                                    "fatMonounsaturated": {
+                                      "description": "Amount in grams.",
+                                      "type": "number"
+                                    },
+                                    "fatPolyunsaturated": {
+                                      "description": "Amount in grams.",
+                                      "type": "number"
+                                    },
+                                    "fatSaturated": {
+                                      "description": "Amount in grams.",
+                                      "type": "number"
+                                    },
+                                    "fatTrans": {
+                                      "description": "Amount in grams.",
+                                      "type": "number"
+                                    },
+                                    "fiber": {
+                                      "description": "Amount in grams.",
+                                      "type": "number"
+                                    },
+                                    "folate": {
+                                      "description": "Amount in micrograms.",
+                                      "type": "number"
+                                    },
+                                    "iodine": {
+                                      "description": "Amount in micrograms.",
+                                      "type": "number"
+                                    },
+                                    "iron": {
+                                      "description": "Amount in milligrams.",
+                                      "type": "number"
+                                    },
+                                    "magnesium": {
+                                      "description": "Amount in milligrams.",
+                                      "type": "number"
+                                    },
+                                    "manganese": {
+                                      "description": "Amount in milligrams.",
+                                      "type": "number"
+                                    },
+                                    "molybdenum": {
+                                      "description": "Amount in micrograms.",
+                                      "type": "number"
+                                    },
+                                    "niacin": {
+                                      "description": "Amount in milligrams.",
+                                      "type": "number"
+                                    },
+                                    "pantothenicAcid": {
+                                      "description": "Amount in milligrams.",
+                                      "type": "number"
+                                    },
+                                    "phosphorus": {
+                                      "description": "Amount in milligrams.",
+                                      "type": "number"
+                                    },
+                                    "potassium": {
+                                      "description": "Amount in milligrams.",
+                                      "type": "number"
+                                    },
+                                    "protein": {
+                                      "description": "Amount in grams.",
+                                      "type": "number"
+                                    },
+                                    "riboflavin": {
+                                      "description": "Amount in milligrams.",
+                                      "type": "number"
+                                    },
+                                    "selenium": {
+                                      "description": "Amount in micrograms.",
+                                      "type": "number"
+                                    },
+                                    "sodium": {
+                                      "description": "Amount in milligrams.",
+                                      "type": "number"
+                                    },
+                                    "sugarAlcohols": {
+                                      "description": "Amount in grams.",
+                                      "type": "number"
+                                    },
+                                    "sugars": {
+                                      "description": "Amount in grams.",
+                                      "type": "number"
+                                    },
+                                    "sugarsAdded": {
+                                      "description": "Amount in grams.",
+                                      "type": "number"
+                                    },
+                                    "thiamin": {
+                                      "description": "Amount in milligrams.",
+                                      "type": "number"
+                                    },
+                                    "vitaminA": {
+                                      "description": "Amount in micrograms RAE.",
+                                      "type": "number"
+                                    },
+                                    "vitaminB12": {
+                                      "description": "Amount in micrograms.",
+                                      "type": "number"
+                                    },
+                                    "vitaminB6": {
+                                      "description": "Amount in milligrams.",
+                                      "type": "number"
+                                    },
+                                    "vitaminC": {
+                                      "description": "Amount in milligrams.",
+                                      "type": "number"
+                                    },
+                                    "vitaminD": {
+                                      "description": "Amount in micrograms.",
+                                      "type": "number"
+                                    },
+                                    "vitaminE": {
+                                      "description": "Amount in milligrams.",
+                                      "type": "number"
+                                    },
+                                    "vitaminK": {
+                                      "description": "Amount in micrograms.",
+                                      "type": "number"
+                                    },
+                                    "water": {
+                                      "description": "Amount in grams.",
+                                      "type": "number"
+                                    },
+                                    "zinc": {
+                                      "description": "Amount in milligrams.",
+                                      "type": "number"
+                                    }
+                                  },
+                                  "additionalProperties": false
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "type": "object",
+                  "required": [
+                    "status",
+                    "code",
+                    "message"
+                  ],
+                  "properties": {
+                    "status": {
+                      "type": "integer"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "issues": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "path",
+                          "message"
+                        ],
+                        "properties": {
+                          "path": {
+                            "type": "string"
+                          },
+                          "message": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "type": "object",
+                  "required": [
+                    "status",
+                    "code",
+                    "message"
+                  ],
+                  "properties": {
+                    "status": {
+                      "type": "integer"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "issues": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "path",
+                          "message"
+                        ],
+                        "properties": {
+                          "path": {
+                            "type": "string"
+                          },
+                          "message": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/library/meals": {
+      "get": {
+        "operationId": "listLibraryMeals",
+        "summary": "List saved meals",
+        "tags": [
+          "library"
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "type": "object",
+                  "required": [
+                    "items"
+                  ],
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "additionalProperties": false,
+                        "type": "object",
+                        "required": [
+                          "collectionId",
+                          "kind",
+                          "type",
+                          "name",
+                          "createdAt",
+                          "updatedAt",
+                          "totals",
+                          "components"
+                        ],
+                        "properties": {
+                          "collectionId": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "kind": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "recipe"
+                                ]
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "meal"
+                                ]
+                              }
+                            ]
+                          },
+                          "type": {
+                            "type": "integer"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "createdAt": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "updatedAt": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "metadata": {
+                            "additionalProperties": false,
+                            "type": "object",
+                            "properties": {
+                              "color": {
+                                "type": "string"
+                              },
+                              "icon": {
+                                "type": "string"
+                              },
+                              "url": {
+                                "type": "string"
+                              },
+                              "notes": {
+                                "type": "string"
+                              }
+                            }
+                          },
+                          "recipe": {
+                            "additionalProperties": false,
+                            "type": "object",
+                            "properties": {
+                              "servings": {
+                                "type": "number"
+                              },
+                              "servingSizeUnit": {
+                                "type": "string"
+                              },
+                              "totalServingSize": {
+                                "type": "number"
+                              }
+                            }
+                          },
+                          "totals": {
+                            "additionalProperties": false,
+                            "type": "object",
+                            "required": [
+                              "calories",
+                              "nutrients"
+                            ],
+                            "properties": {
+                              "calories": {
+                                "type": "number"
+                              },
+                              "nutrients": {
+                                "type": "object",
+                                "properties": {
+                                  "alcohol": {
+                                    "description": "Amount in grams.",
+                                    "type": "number"
+                                  },
+                                  "biotin": {
+                                    "description": "Amount in micrograms.",
+                                    "type": "number"
+                                  },
+                                  "caffeine": {
+                                    "description": "Amount in milligrams.",
+                                    "type": "number"
+                                  },
+                                  "calcium": {
+                                    "description": "Amount in milligrams.",
+                                    "type": "number"
+                                  },
+                                  "carbs": {
+                                    "description": "Amount in grams.",
+                                    "type": "number"
+                                  },
+                                  "chlorine": {
+                                    "description": "Amount in milligrams.",
+                                    "type": "number"
+                                  },
+                                  "cholesterol": {
+                                    "description": "Amount in milligrams.",
+                                    "type": "number"
+                                  },
+                                  "chromium": {
+                                    "description": "Amount in micrograms.",
+                                    "type": "number"
+                                  },
+                                  "copper": {
+                                    "description": "Amount in milligrams.",
+                                    "type": "number"
+                                  },
+                                  "fat": {
+                                    "description": "Amount in grams.",
+                                    "type": "number"
+                                  },
+                                  "fatMonounsaturated": {
+                                    "description": "Amount in grams.",
+                                    "type": "number"
+                                  },
+                                  "fatPolyunsaturated": {
+                                    "description": "Amount in grams.",
+                                    "type": "number"
+                                  },
+                                  "fatSaturated": {
+                                    "description": "Amount in grams.",
+                                    "type": "number"
+                                  },
+                                  "fatTrans": {
+                                    "description": "Amount in grams.",
+                                    "type": "number"
+                                  },
+                                  "fiber": {
+                                    "description": "Amount in grams.",
+                                    "type": "number"
+                                  },
+                                  "folate": {
+                                    "description": "Amount in micrograms.",
+                                    "type": "number"
+                                  },
+                                  "iodine": {
+                                    "description": "Amount in micrograms.",
+                                    "type": "number"
+                                  },
+                                  "iron": {
+                                    "description": "Amount in milligrams.",
+                                    "type": "number"
+                                  },
+                                  "magnesium": {
+                                    "description": "Amount in milligrams.",
+                                    "type": "number"
+                                  },
+                                  "manganese": {
+                                    "description": "Amount in milligrams.",
+                                    "type": "number"
+                                  },
+                                  "molybdenum": {
+                                    "description": "Amount in micrograms.",
+                                    "type": "number"
+                                  },
+                                  "niacin": {
+                                    "description": "Amount in milligrams.",
+                                    "type": "number"
+                                  },
+                                  "pantothenicAcid": {
+                                    "description": "Amount in milligrams.",
+                                    "type": "number"
+                                  },
+                                  "phosphorus": {
+                                    "description": "Amount in milligrams.",
+                                    "type": "number"
+                                  },
+                                  "potassium": {
+                                    "description": "Amount in milligrams.",
+                                    "type": "number"
+                                  },
+                                  "protein": {
+                                    "description": "Amount in grams.",
+                                    "type": "number"
+                                  },
+                                  "riboflavin": {
+                                    "description": "Amount in milligrams.",
+                                    "type": "number"
+                                  },
+                                  "selenium": {
+                                    "description": "Amount in micrograms.",
+                                    "type": "number"
+                                  },
+                                  "sodium": {
+                                    "description": "Amount in milligrams.",
+                                    "type": "number"
+                                  },
+                                  "sugarAlcohols": {
+                                    "description": "Amount in grams.",
+                                    "type": "number"
+                                  },
+                                  "sugars": {
+                                    "description": "Amount in grams.",
+                                    "type": "number"
+                                  },
+                                  "sugarsAdded": {
+                                    "description": "Amount in grams.",
+                                    "type": "number"
+                                  },
+                                  "thiamin": {
+                                    "description": "Amount in milligrams.",
+                                    "type": "number"
+                                  },
+                                  "vitaminA": {
+                                    "description": "Amount in micrograms RAE.",
+                                    "type": "number"
+                                  },
+                                  "vitaminB12": {
+                                    "description": "Amount in micrograms.",
+                                    "type": "number"
+                                  },
+                                  "vitaminB6": {
+                                    "description": "Amount in milligrams.",
+                                    "type": "number"
+                                  },
+                                  "vitaminC": {
+                                    "description": "Amount in milligrams.",
+                                    "type": "number"
+                                  },
+                                  "vitaminD": {
+                                    "description": "Amount in micrograms.",
+                                    "type": "number"
+                                  },
+                                  "vitaminE": {
+                                    "description": "Amount in milligrams.",
+                                    "type": "number"
+                                  },
+                                  "vitaminK": {
+                                    "description": "Amount in micrograms.",
+                                    "type": "number"
+                                  },
+                                  "water": {
+                                    "description": "Amount in grams.",
+                                    "type": "number"
+                                  },
+                                  "zinc": {
+                                    "description": "Amount in milligrams.",
+                                    "type": "number"
+                                  }
+                                },
+                                "additionalProperties": false
+                              }
+                            }
+                          },
+                          "servingTotals": {
+                            "additionalProperties": false,
+                            "type": "object",
+                            "required": [
+                              "calories",
+                              "nutrients"
+                            ],
+                            "properties": {
+                              "calories": {
+                                "type": "number"
+                              },
+                              "nutrients": {
+                                "type": "object",
+                                "properties": {
+                                  "alcohol": {
+                                    "description": "Amount in grams.",
+                                    "type": "number"
+                                  },
+                                  "biotin": {
+                                    "description": "Amount in micrograms.",
+                                    "type": "number"
+                                  },
+                                  "caffeine": {
+                                    "description": "Amount in milligrams.",
+                                    "type": "number"
+                                  },
+                                  "calcium": {
+                                    "description": "Amount in milligrams.",
+                                    "type": "number"
+                                  },
+                                  "carbs": {
+                                    "description": "Amount in grams.",
+                                    "type": "number"
+                                  },
+                                  "chlorine": {
+                                    "description": "Amount in milligrams.",
+                                    "type": "number"
+                                  },
+                                  "cholesterol": {
+                                    "description": "Amount in milligrams.",
+                                    "type": "number"
+                                  },
+                                  "chromium": {
+                                    "description": "Amount in micrograms.",
+                                    "type": "number"
+                                  },
+                                  "copper": {
+                                    "description": "Amount in milligrams.",
+                                    "type": "number"
+                                  },
+                                  "fat": {
+                                    "description": "Amount in grams.",
+                                    "type": "number"
+                                  },
+                                  "fatMonounsaturated": {
+                                    "description": "Amount in grams.",
+                                    "type": "number"
+                                  },
+                                  "fatPolyunsaturated": {
+                                    "description": "Amount in grams.",
+                                    "type": "number"
+                                  },
+                                  "fatSaturated": {
+                                    "description": "Amount in grams.",
+                                    "type": "number"
+                                  },
+                                  "fatTrans": {
+                                    "description": "Amount in grams.",
+                                    "type": "number"
+                                  },
+                                  "fiber": {
+                                    "description": "Amount in grams.",
+                                    "type": "number"
+                                  },
+                                  "folate": {
+                                    "description": "Amount in micrograms.",
+                                    "type": "number"
+                                  },
+                                  "iodine": {
+                                    "description": "Amount in micrograms.",
+                                    "type": "number"
+                                  },
+                                  "iron": {
+                                    "description": "Amount in milligrams.",
+                                    "type": "number"
+                                  },
+                                  "magnesium": {
+                                    "description": "Amount in milligrams.",
+                                    "type": "number"
+                                  },
+                                  "manganese": {
+                                    "description": "Amount in milligrams.",
+                                    "type": "number"
+                                  },
+                                  "molybdenum": {
+                                    "description": "Amount in micrograms.",
+                                    "type": "number"
+                                  },
+                                  "niacin": {
+                                    "description": "Amount in milligrams.",
+                                    "type": "number"
+                                  },
+                                  "pantothenicAcid": {
+                                    "description": "Amount in milligrams.",
+                                    "type": "number"
+                                  },
+                                  "phosphorus": {
+                                    "description": "Amount in milligrams.",
+                                    "type": "number"
+                                  },
+                                  "potassium": {
+                                    "description": "Amount in milligrams.",
+                                    "type": "number"
+                                  },
+                                  "protein": {
+                                    "description": "Amount in grams.",
+                                    "type": "number"
+                                  },
+                                  "riboflavin": {
+                                    "description": "Amount in milligrams.",
+                                    "type": "number"
+                                  },
+                                  "selenium": {
+                                    "description": "Amount in micrograms.",
+                                    "type": "number"
+                                  },
+                                  "sodium": {
+                                    "description": "Amount in milligrams.",
+                                    "type": "number"
+                                  },
+                                  "sugarAlcohols": {
+                                    "description": "Amount in grams.",
+                                    "type": "number"
+                                  },
+                                  "sugars": {
+                                    "description": "Amount in grams.",
+                                    "type": "number"
+                                  },
+                                  "sugarsAdded": {
+                                    "description": "Amount in grams.",
+                                    "type": "number"
+                                  },
+                                  "thiamin": {
+                                    "description": "Amount in milligrams.",
+                                    "type": "number"
+                                  },
+                                  "vitaminA": {
+                                    "description": "Amount in micrograms RAE.",
+                                    "type": "number"
+                                  },
+                                  "vitaminB12": {
+                                    "description": "Amount in micrograms.",
+                                    "type": "number"
+                                  },
+                                  "vitaminB6": {
+                                    "description": "Amount in milligrams.",
+                                    "type": "number"
+                                  },
+                                  "vitaminC": {
+                                    "description": "Amount in milligrams.",
+                                    "type": "number"
+                                  },
+                                  "vitaminD": {
+                                    "description": "Amount in micrograms.",
+                                    "type": "number"
+                                  },
+                                  "vitaminE": {
+                                    "description": "Amount in milligrams.",
+                                    "type": "number"
+                                  },
+                                  "vitaminK": {
+                                    "description": "Amount in micrograms.",
+                                    "type": "number"
+                                  },
+                                  "water": {
+                                    "description": "Amount in grams.",
+                                    "type": "number"
+                                  },
+                                  "zinc": {
+                                    "description": "Amount in milligrams.",
+                                    "type": "number"
+                                  }
+                                },
+                                "additionalProperties": false
+                              }
+                            }
+                          },
+                          "components": {
+                            "type": "array",
+                            "items": {
+                              "additionalProperties": false,
+                              "type": "object",
+                              "required": [
+                                "name",
+                                "collectionSortIndex",
+                                "baseUnit",
+                                "calories",
+                                "nutrients"
+                              ],
+                              "properties": {
+                                "name": {
+                                  "type": "string"
+                                },
+                                "collectionSortIndex": {
+                                  "anyOf": [
+                                    {
+                                      "type": "integer"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "quantity": {
+                                  "type": "number"
+                                },
+                                "baseAmount": {
+                                  "type": "number"
+                                },
+                                "baseUnit": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "measure": {
+                                  "additionalProperties": false,
+                                  "type": "object",
+                                  "properties": {
+                                    "descriptionQuantity": {
+                                      "type": "number"
+                                    },
+                                    "descriptionText": {
+                                      "type": "string"
+                                    },
+                                    "unit": {
+                                      "type": "string"
+                                    },
+                                    "value": {
+                                      "type": "number"
+                                    },
+                                    "traits": {
+                                      "type": "number"
+                                    }
+                                  },
+                                  "description": "Whitelisted public fields parsed from FoodNoms measure JSON."
+                                },
+                                "calories": {
+                                  "type": "number"
+                                },
+                                "nutrients": {
+                                  "type": "object",
+                                  "properties": {
+                                    "alcohol": {
+                                      "description": "Amount in grams.",
+                                      "type": "number"
+                                    },
+                                    "biotin": {
+                                      "description": "Amount in micrograms.",
+                                      "type": "number"
+                                    },
+                                    "caffeine": {
+                                      "description": "Amount in milligrams.",
+                                      "type": "number"
+                                    },
+                                    "calcium": {
+                                      "description": "Amount in milligrams.",
+                                      "type": "number"
+                                    },
+                                    "carbs": {
+                                      "description": "Amount in grams.",
+                                      "type": "number"
+                                    },
+                                    "chlorine": {
+                                      "description": "Amount in milligrams.",
+                                      "type": "number"
+                                    },
+                                    "cholesterol": {
+                                      "description": "Amount in milligrams.",
+                                      "type": "number"
+                                    },
+                                    "chromium": {
+                                      "description": "Amount in micrograms.",
+                                      "type": "number"
+                                    },
+                                    "copper": {
+                                      "description": "Amount in milligrams.",
+                                      "type": "number"
+                                    },
+                                    "fat": {
+                                      "description": "Amount in grams.",
+                                      "type": "number"
+                                    },
+                                    "fatMonounsaturated": {
+                                      "description": "Amount in grams.",
+                                      "type": "number"
+                                    },
+                                    "fatPolyunsaturated": {
+                                      "description": "Amount in grams.",
+                                      "type": "number"
+                                    },
+                                    "fatSaturated": {
+                                      "description": "Amount in grams.",
+                                      "type": "number"
+                                    },
+                                    "fatTrans": {
+                                      "description": "Amount in grams.",
+                                      "type": "number"
+                                    },
+                                    "fiber": {
+                                      "description": "Amount in grams.",
+                                      "type": "number"
+                                    },
+                                    "folate": {
+                                      "description": "Amount in micrograms.",
+                                      "type": "number"
+                                    },
+                                    "iodine": {
+                                      "description": "Amount in micrograms.",
+                                      "type": "number"
+                                    },
+                                    "iron": {
+                                      "description": "Amount in milligrams.",
+                                      "type": "number"
+                                    },
+                                    "magnesium": {
+                                      "description": "Amount in milligrams.",
+                                      "type": "number"
+                                    },
+                                    "manganese": {
+                                      "description": "Amount in milligrams.",
+                                      "type": "number"
+                                    },
+                                    "molybdenum": {
+                                      "description": "Amount in micrograms.",
+                                      "type": "number"
+                                    },
+                                    "niacin": {
+                                      "description": "Amount in milligrams.",
+                                      "type": "number"
+                                    },
+                                    "pantothenicAcid": {
+                                      "description": "Amount in milligrams.",
+                                      "type": "number"
+                                    },
+                                    "phosphorus": {
+                                      "description": "Amount in milligrams.",
+                                      "type": "number"
+                                    },
+                                    "potassium": {
+                                      "description": "Amount in milligrams.",
+                                      "type": "number"
+                                    },
+                                    "protein": {
+                                      "description": "Amount in grams.",
+                                      "type": "number"
+                                    },
+                                    "riboflavin": {
+                                      "description": "Amount in milligrams.",
+                                      "type": "number"
+                                    },
+                                    "selenium": {
+                                      "description": "Amount in micrograms.",
+                                      "type": "number"
+                                    },
+                                    "sodium": {
+                                      "description": "Amount in milligrams.",
+                                      "type": "number"
+                                    },
+                                    "sugarAlcohols": {
+                                      "description": "Amount in grams.",
+                                      "type": "number"
+                                    },
+                                    "sugars": {
+                                      "description": "Amount in grams.",
+                                      "type": "number"
+                                    },
+                                    "sugarsAdded": {
+                                      "description": "Amount in grams.",
+                                      "type": "number"
+                                    },
+                                    "thiamin": {
+                                      "description": "Amount in milligrams.",
+                                      "type": "number"
+                                    },
+                                    "vitaminA": {
+                                      "description": "Amount in micrograms RAE.",
+                                      "type": "number"
+                                    },
+                                    "vitaminB12": {
+                                      "description": "Amount in micrograms.",
+                                      "type": "number"
+                                    },
+                                    "vitaminB6": {
+                                      "description": "Amount in milligrams.",
+                                      "type": "number"
+                                    },
+                                    "vitaminC": {
+                                      "description": "Amount in milligrams.",
+                                      "type": "number"
+                                    },
+                                    "vitaminD": {
+                                      "description": "Amount in micrograms.",
+                                      "type": "number"
+                                    },
+                                    "vitaminE": {
+                                      "description": "Amount in milligrams.",
+                                      "type": "number"
+                                    },
+                                    "vitaminK": {
+                                      "description": "Amount in micrograms.",
+                                      "type": "number"
+                                    },
+                                    "water": {
+                                      "description": "Amount in grams.",
+                                      "type": "number"
+                                    },
+                                    "zinc": {
+                                      "description": "Amount in milligrams.",
+                                      "type": "number"
+                                    }
+                                  },
+                                  "additionalProperties": false
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "type": "object",
+                  "required": [
+                    "status",
+                    "code",
+                    "message"
+                  ],
+                  "properties": {
+                    "status": {
+                      "type": "integer"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "issues": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "path",
+                          "message"
+                        ],
+                        "properties": {
+                          "path": {
+                            "type": "string"
+                          },
+                          "message": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "type": "object",
+                  "required": [
+                    "status",
+                    "code",
+                    "message"
+                  ],
+                  "properties": {
+                    "status": {
+                      "type": "integer"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "issues": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "path",
+                          "message"
+                        ],
+                        "properties": {
+                          "path": {
+                            "type": "string"
+                          },
+                          "message": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/foods": {
       "get": {
         "operationId": "listFoods",

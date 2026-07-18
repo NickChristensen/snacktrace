@@ -83,6 +83,8 @@ describe('SnackTrace API', () => {
       ['/health?unexpected=1', '/health'],
       ['/openapi.json?unexpected=1', '/openapi.json'],
       ['/v1/goals?unexpected=1', '/v1/goals'],
+      ['/v1/library/recipes?unexpected=1', '/v1/library/recipes'],
+      ['/v1/library/meals?unexpected=1', '/v1/library/meals'],
       ['/v1/foods/anything?unexpected=1', '/v1/foods/{foodId}'],
     ] as const) {
       const response = await app.inject(url)
@@ -103,6 +105,8 @@ describe('SnackTrace API', () => {
       ['/v1/days/2026-07-12/goals', '/v1/days/{date}/goals'],
       ['/v1/days?from=2026-07-12&to=2026-07-12', '/v1/days'],
       ['/v1/goals', '/v1/goals'],
+      ['/v1/library/recipes', '/v1/library/recipes'],
+      ['/v1/library/meals', '/v1/library/meals'],
       ['/v1/foods', '/v1/foods'],
       ['/v1/foods/anything', '/v1/foods/{foodId}'],
     ] as const) {
@@ -162,6 +166,30 @@ describe('SnackTrace API', () => {
     expect(food.nutrients).not.to.have.property('calories')
     const rawCalorieAbsent = foods.items.find((item: {foodId: string}) => item.foodId === 'dddddddd-dddd-dddd-dddd-dddddddddddd')
     expect(rawCalorieAbsent).not.to.have.property('calories')
+  })
+
+  it('lists saved recipes and meals from normalized collection edits without exposing raw identifiers', async () => {
+    const app = await buildApp({dbPath: createFixture(), logger: false}); apps.push(app)
+    const recipes = (await app.inject('/v1/library/recipes')).json()
+    const meals = (await app.inject('/v1/library/meals')).json()
+    expect(recipes.items.map((item: {name: string}) => item.name)).to.deep.equal(['alpha recipe', 'Bravo Recipe'])
+    const recipe = recipes.items[0]
+    expect(recipe).to.include({collectionId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa01', kind: 'recipe', type: 3, name: 'alpha recipe', createdAt: '2026-07-01T10:00:00.000Z', updatedAt: '2026-07-02T11:30:00.000Z'})
+    expect(recipe.recipe).to.deep.equal({servings: 4, servingSizeUnit: 'portion', totalServingSize: 800})
+    expect(recipe.metadata).to.deep.equal({color: '#fff', icon: 'fork.knife', url: 'https://example.test/alpha', notes: 'Fixture recipe'})
+    expect(recipe.totals).to.deep.equal({calories: 155, nutrients: {protein: 8.25}})
+    expect(recipe.servingTotals).to.deep.equal({calories: 38.75, nutrients: {protein: 2.0625}})
+    expect(recipe.components.map((item: {name: string; collectionSortIndex: number | null}) => [item.name, item.collectionSortIndex])).to.deep.equal([['Oats', 1], ['Milk', null]])
+    expect(recipe.components[0]).to.include({calories: 105})
+    expect(recipe.components[0].measure).to.deep.equal({descriptionQuantity: 0.666, descriptionText: 'cup', traits: 0, unit: 'gram', value: 80})
+    expect(recipe.components[0].nutrients).to.deep.equal({protein: 5.25})
+    expect(recipe.components[0]).not.to.have.any.keys('entryId', 'foodId', 'collectionEditId')
+    expect(meals.items).to.have.length(1)
+    expect(meals.items[0]).to.include({kind: 'meal', type: 2, name: 'Breakfast Box'})
+    expect(meals.items[0]).not.to.have.property('recipe')
+    expect(meals.items[0]).not.to.have.property('servingTotals')
+    expect(recipes.items[1]).to.include({name: 'Bravo Recipe'})
+    expect(recipes.items[1]).not.to.have.property('servingTotals')
   })
 
   it('accepts inclusive ranges through 366 days and rejects longer ranges', async () => {
@@ -224,7 +252,7 @@ describe('SnackTrace API', () => {
     const app = await buildApp({logger: false}); apps.push(app)
     await app.ready()
     const document = app.swagger() as {paths: Record<string, unknown>}
-    expect(Object.keys(document.paths)).to.have.members(['/health', '/openapi.json', '/v1/days/{date}', '/v1/days/{date}/entries', '/v1/days/{date}/meals', '/v1/days/{date}/goals', '/v1/days', '/v1/goals', '/v1/foods', '/v1/foods/{foodId}'])
+    expect(Object.keys(document.paths)).to.have.members(['/health', '/openapi.json', '/v1/days/{date}', '/v1/days/{date}/entries', '/v1/days/{date}/meals', '/v1/days/{date}/goals', '/v1/days', '/v1/goals', '/v1/library/recipes', '/v1/library/meals', '/v1/foods', '/v1/foods/{foodId}'])
     const daysRange = document.paths['/v1/days'] as {get: {summary: string; parameters: Array<{name: string; description: string}>}}
     expect(daysRange.get.summary).to.equal('Get an inclusive day range of at most 366 days')
     expect(daysRange.get.parameters.find((parameter) => parameter.name === 'to')?.description).to.include('at most 366 days')

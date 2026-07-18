@@ -3,7 +3,7 @@ import {Type} from '@sinclair/typebox'
 import Fastify, {type FastifyInstance, type FastifyReply} from 'fastify'
 
 import {FoodNomsDatabase} from './db.js'
-import {allGoals, daySummary, foodSnapshot, inclusiveDayCount, InvalidFoodCursorError, isIsoDate, listFoods, rangeSummary} from './domain.js'
+import {allGoals, daySummary, foodSnapshot, inclusiveDayCount, InvalidFoodCursorError, isIsoDate, listFoods, listLibrary, rangeSummary} from './domain.js'
 
 const DateString = Type.String({pattern: '^\\d{4}-\\d{2}-\\d{2}$', description: 'Calendar date in strict ISO 8601 YYYY-MM-DD form.'})
 const amount = (unit: string) => Type.Number({description: `Amount in ${unit}.`})
@@ -59,6 +59,11 @@ const MealResponse = Type.Object({mealTypeId: Type.Union([Type.String(), Type.Nu
 const DayResponse = Type.Object({date: DateString, totals: Totals, goals: Type.Array(GoalResponse), meals: Type.Array(MealResponse)}, {additionalProperties: false})
 const RangeDayResponse = Type.Object({date: DateString, totals: Totals, goals: Type.Array(GoalResponse)}, {additionalProperties: false})
 const FoodResponse = Type.Object({foodId: Type.Union([Type.String(), Type.Null()]), name: Type.String(), brandOwner: Type.Union([Type.String(), Type.Null()]), baseAmount: Type.Optional(Type.Number()), baseUnit: Type.Union([Type.String(), Type.Null()]), source: Type.Union([Type.String(), Type.Null()]), barcode: Type.Union([Type.String(), Type.Null()]), lastLoggedAt: Type.Union([Type.String(), Type.Null()]), calories: Type.Optional(Type.Number()), nutrients: Nutrients}, {additionalProperties: false})
+const Measure = Type.Partial(Type.Object({descriptionQuantity: Type.Number(), descriptionText: Type.String(), unit: Type.String(), value: Type.Number(), traits: Type.Number()}, {additionalProperties: false}), {description: 'Whitelisted public fields parsed from FoodNoms measure JSON.'})
+const CollectionMetadata = Type.Partial(Type.Object({color: Type.String(), icon: Type.String(), url: Type.String(), notes: Type.String()}, {additionalProperties: false}))
+const RecipeServing = Type.Partial(Type.Object({servings: Type.Number(), servingSizeUnit: Type.String(), totalServingSize: Type.Number()}, {additionalProperties: false}))
+const LibraryComponent = Type.Object({name: Type.String(), collectionSortIndex: Type.Union([Type.Integer(), Type.Null()]), quantity: Type.Optional(Type.Number()), baseAmount: Type.Optional(Type.Number()), baseUnit: Type.Union([Type.String(), Type.Null()]), measure: Type.Optional(Measure), calories: Type.Number(), nutrients: Nutrients}, {additionalProperties: false})
+const LibraryItem = Type.Object({collectionId: Type.Union([Type.String(), Type.Null()]), kind: Type.Union([Type.Literal('recipe'), Type.Literal('meal')]), type: Type.Integer(), name: Type.String(), createdAt: Type.Union([Type.String(), Type.Null()]), updatedAt: Type.Union([Type.String(), Type.Null()]), metadata: Type.Optional(CollectionMetadata), recipe: Type.Optional(RecipeServing), totals: Totals, servingTotals: Type.Optional(Totals), components: Type.Array(LibraryComponent)}, {additionalProperties: false})
 const GoalHistory = Type.Object({ruleId: Type.Union([Type.String(), Type.Null()]), effectiveDate: Type.Union([DateString, Type.Null()]), startDay: Type.Union([Type.Number(), Type.Null()]), weekday: Type.Union([Type.Integer(), Type.Null()]), isOverride: Type.Boolean(), mode: Type.Union([Type.Literal('maximum'), Type.Literal('minimum'), Type.Literal('range'), Type.Literal('tracking')]), lowerBound: Type.Union([Type.Number(), Type.Null()]), upperBound: Type.Union([Type.Number(), Type.Null()])}, {additionalProperties: false})
 const GoalHistoryResponse = Type.Object({goalId: Type.Union([Type.String(), Type.Null()]), type: Type.String(), history: Type.Array(GoalHistory)}, {additionalProperties: false})
 const GoalSummary = Type.Object({type: Type.String(), averageActual: Type.Number(), statusCounts: Type.Object({below: Type.Optional(Type.Integer()), within: Type.Optional(Type.Integer()), above: Type.Optional(Type.Integer()), tracking: Type.Optional(Type.Integer())}, {additionalProperties: false})}, {additionalProperties: false})
@@ -69,7 +74,7 @@ const DateRangeQuery = Type.Object({
   from: Type.String({pattern: '^\\d{4}-\\d{2}-\\d{2}$', description: 'First calendar date in strict ISO 8601 YYYY-MM-DD form.'}),
   to: Type.String({pattern: '^\\d{4}-\\d{2}-\\d{2}$', description: 'Last calendar date in strict ISO 8601 YYYY-MM-DD form. The inclusive range from `from` through `to` may contain at most 366 days.'}),
 }, {additionalProperties: false})
-const HEALTH_TABLES = ['foodEntryRecord', 'mealTypeRecord', 'goalRecord', 'goalRuleRecord'] as const
+const HEALTH_TABLES = ['foodEntryRecord', 'foodCollectionRecord', 'mealTypeRecord', 'goalRecord', 'goalRuleRecord'] as const
 
 export interface AppOptions {dbPath?: string; logger?: boolean}
 
@@ -136,6 +141,13 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
   })
 
   app.get('/v1/goals', {schema: {tags: ['goals'], summary: 'Get dated goal rule history', operationId: 'getGoals', querystring: EmptyQuery, response: {200: Type.Object({items: Type.Array(GoalHistoryResponse)}, {additionalProperties: false}), 400: ErrorResponse, 404: ErrorResponse, 500: ErrorResponse}}}, async () => { const db = getDatabase(); return db.read(() => allGoals(db)) })
+
+  for (const [path, collectionType, kind] of [['/v1/library/recipes', 3, 'recipes'], ['/v1/library/meals', 2, 'meals']] as const) {
+    app.get(path, {schema: {tags: ['library'], summary: `List saved ${kind}`, operationId: collectionType === 3 ? 'listLibraryRecipes' : 'listLibraryMeals', querystring: EmptyQuery, response: {200: Type.Object({items: Type.Array(LibraryItem)}, {additionalProperties: false}), 400: ErrorResponse, 500: ErrorResponse}}}, async () => {
+      const db = getDatabase()
+      return db.read(() => listLibrary(db, collectionType))
+    })
+  }
 
   app.get<{Querystring: {q?: string; limit?: number; cursor?: string; sort?: 'name' | '-lastLoggedAt'}}>('/v1/foods', {schema: {tags: ['foods'], summary: 'List latest food snapshots', operationId: 'listFoods', querystring: Type.Object({q: Type.Optional(Type.String({minLength: 1, maxLength: 200})), limit: Type.Optional(Type.Integer({minimum: 1, maximum: 200, default: 50})), cursor: Type.Optional(Type.String({minLength: 1, maxLength: 1000})), sort: Type.Optional(Type.Union([Type.Literal('name'), Type.Literal('-lastLoggedAt')], {default: 'name'}))}, {additionalProperties: false}), response: {200: Type.Object({items: Type.Array(FoodResponse), nextCursor: Type.Optional(Type.String())}, {additionalProperties: false}), 400: ErrorResponse, 500: ErrorResponse}}}, async (request, reply) => {
     try { const db = getDatabase(); return db.read(() => listFoods(db, {q: request.query.q, limit: request.query.limit ?? 50, cursor: request.query.cursor, sort: request.query.sort ?? 'name'})) } catch (error) {

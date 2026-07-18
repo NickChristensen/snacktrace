@@ -34,6 +34,25 @@ export function createFixture(): string {
   db.prepare('INSERT INTO goalRuleRecord VALUES (?, ?, julianday(?), ?, ?, ?, ?, ?, ?)').run(id('33333333333333333333333333333333'), 'protein', '2026-01-01', null, 2, 10, null, 0, '2026-01-01')
   db.prepare('INSERT INTO goalRuleRecord VALUES (?, ?, julianday(?), ?, ?, ?, ?, ?, ?)').run(id('44444444444444444444444444444444'), 'carbohydrate', '2026-01-01', null, 3, 20, 30, 0, '2026-01-01')
   db.prepare('INSERT INTO goalRuleRecord VALUES (?, ?, julianday(?), ?, ?, ?, ?, ?, ?)').run(id('55555555555555555555555555555555'), 'caffeine', '2026-01-01', null, 4, null, null, 0, '2026-01-01')
+  db.exec(`
+    ALTER TABLE foodEntryRecord ADD COLUMN collectionEditID BLOB;
+    ALTER TABLE foodEntryRecord ADD COLUMN collectionSortIndex INTEGER;
+    ALTER TABLE foodEntryRecord ADD COLUMN measure TEXT;
+    ALTER TABLE foodEntryRecord ADD COLUMN measures TEXT;
+    CREATE TABLE foodCollectionRecord (id INTEGER PRIMARY KEY, collectionID BLOB, collectionEditID BLOB, version INTEGER, dateCreated TEXT, dateLastUpdated TEXT, name TEXT, collectionType INTEGER, servings REAL, servingSizeUnit TEXT, totalServingSize REAL, traits INTEGER, updateCount INTEGER, clock INTEGER, color TEXT, icon TEXT, foodEntries BLOB, urlString TEXT, notes TEXT);
+  `)
+  const collection = db.prepare('INSERT INTO foodCollectionRecord (id, collectionID, collectionEditID, dateCreated, dateLastUpdated, name, collectionType, servings, servingSizeUnit, totalServingSize, color, icon, foodEntries, urlString, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
+  const recipeEdit = id('111111111111111111111111111111aa')
+  const recipeTwoEdit = id('111111111111111111111111111111bb')
+  const mealEdit = id('111111111111111111111111111111cc')
+  collection.run(101, id('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa01'), recipeEdit, '2026-07-01 10:00:00.000', '2026-07-02 11:30:00.000', 'alpha recipe', 3, 4, 'portion', 800, '#fff', 'fork.knife', null, 'https://example.test/alpha', 'Fixture recipe')
+  collection.run(102, id('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa02'), recipeTwoEdit, '2026-07-03 10:00:00.000', '2026-07-03 10:00:00.000', 'Bravo Recipe', 3, 0, null, null, null, null, null, null, null)
+  collection.run(103, id('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa03'), mealEdit, '2026-07-04 10:00:00.000', '2026-07-05 10:00:00.000', 'Breakfast Box', 2, null, null, null, null, null, null, null, null)
+  const component = db.prepare('INSERT INTO foodEntryRecord (id, entryID, name, calories, quantity, baseAmount, baseUnit, nutrients, collectionEditID, collectionSortIndex, measure) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
+  component.run(101, id('10112233445566778899aabbccddee01'), 'Oats', 105, 1, 100, 'g', '{"calories":100,"protein":5}', recipeEdit, 1, '{"descriptionQuantity":0.666,"descriptionText":"cup","traits":0,"unit":"gram","value":80,"internalValue":"do not expose"}')
+  component.run(102, id('10112233445566778899aabbccddee02'), 'Milk', 50, 1, 100, 'g', '{"calories":50,"protein":3}', recipeEdit, null, '{"descriptionText":"cup","traits":0,"unit":"gram","value":240}')
+  component.run(103, id('10112233445566778899aabbccddee03'), 'Berries', 25, 1, 100, 'g', '{"calories":25,"carbs":6}', recipeTwoEdit, 0, '{"descriptionText":"cup","traits":0,"unit":"gram","value":140}')
+  component.run(104, id('10112233445566778899aabbccddee04'), 'Eggs', 140, 2, 100, 'g', '{"calories":70,"protein":6}', mealEdit, 0, '{"descriptionText":"egg","traits":0,"unit":"gram","value":50}')
   db.close()
   return path
 }

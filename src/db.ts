@@ -19,11 +19,37 @@ export interface FoodNomsSchema {
     brandOwner: string | null
     barcode: string | null
     source: string | null
+    collectionEditID: string | Buffer | null
+    collectionSortIndex: number | null
+    measure: string | Buffer | null
+    measures: string | Buffer | null
+  }
+  foodCollectionRecord: {
+    id: number
+    collectionID: string | Buffer | null
+    collectionEditID: string | Buffer | null
+    version: number | null
+    dateCreated: string | null
+    dateLastUpdated: string | null
+    name: string | null
+    collectionType: number | null
+    servings: number | null
+    servingSizeUnit: string | null
+    totalServingSize: number | null
+    traits: number | null
+    updateCount: number | null
+    clock: number | null
+    color: string | null
+    icon: string | null
+    foodEntries: string | Buffer | null
+    urlString: string | null
+    notes: string | null
   }
 }
 
 const REQUIRED: Record<string, string[]> = {
-  foodEntryRecord: ['id', 'entryID', 'date', 'tzID', 'day', 'mealTypeID', 'name', 'calories', 'quantity', 'baseAmount', 'baseUnit', 'nutrients', 'foodID'],
+  foodEntryRecord: ['id', 'entryID', 'date', 'tzID', 'day', 'mealTypeID', 'name', 'calories', 'quantity', 'baseAmount', 'baseUnit', 'nutrients', 'foodID', 'collectionEditID', 'collectionSortIndex', 'measure', 'measures'],
+  foodCollectionRecord: ['id', 'collectionID', 'collectionEditID', 'dateCreated', 'dateLastUpdated', 'name', 'collectionType', 'servings', 'servingSizeUnit', 'totalServingSize', 'color', 'icon', 'foodEntries', 'urlString', 'notes'],
   mealTypeRecord: ['mealTypeID', 'name', 'sortIndex', 'disabled'],
   goalRecord: ['goalID', 'goalType', 'sortIndex'],
   goalRuleRecord: ['ruleID', 'goalType', 'startDay', 'dayOfWeek', 'mode', 'lowerBound', 'upperBound', 'isOverride'],

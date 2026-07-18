@@ -15,14 +15,14 @@ SELECT datetime(date, 'localtime') FROM foodEntryRecord;
 
 ### Core Tables (Most Important)
 
-- `foodEntryRecord`: per-log food entries (name, date, quantity, calories, nutrients JSON, mealTypeID, foodID)
+- `foodEntryRecord`: per-log food entries (name, date, quantity, calories, nutrients JSON, mealTypeID, foodID, and collection-edit component linkage)
 - `foodRecord`: food catalog/master records (base nutrients, source, barcode, brand)
 - `mealTypeRecord`: meal bucket metadata (mealTypeID, name, time ranges)
 
 ### Other Data Tables and Likely Purpose
 
 - `activityEntryRecord`: activity logs by day (likely exercise / activity-related values)
-- `foodCollectionRecord`: saved recipes/meals/collections (`foodEntries` blob)
+- `foodCollectionRecord`: saved recipes/meals/collections. Its `collectionEditID` joins component rows in `foodEntryRecord`; the legacy `foodEntries` blob is null for every collection in the current live snapshot and is not a reliable component source.
 - `favoriteRecord`: favorites and quick items
 - `goalRecord`: configured goals
 - `goalRuleRecord`: goal rules / adjustments / bounds
@@ -47,13 +47,15 @@ These are internal full-text-search structures backing app search:
 
 ### Row Counts (Snapshot)
 
+Most counts below are recorded snapshot values. `foodCollectionRecord` is a separately verified current snapshot: 18 collections total (13 meals, `collectionType = 2`; 5 recipes, `collectionType = 3`).
+
 | Table                           |  Rows |
 | ------------------------------- | ----: |
 | activityEntryRecord             |  2187 |
 | cloudKitServerChangeTokenRecord |     1 |
 | deletedRecords                  | 19103 |
 | favoriteRecord                  |    13 |
-| foodCollectionRecord            |    15 |
+| foodCollectionRecord            |    18 |
 | foodEntryRecord                 |  2959 |
 | foodRecord                      |    38 |
 | goalRecord                      |     5 |
@@ -71,7 +73,7 @@ These are internal full-text-search structures backing app search:
 
 - `foodEntryRecord.foodID` -> `foodRecord.foodID`
 - `foodEntryRecord.mealTypeID` -> `mealTypeRecord.mealTypeID`
-- `foodEntryRecord.collectionEditID` appears to relate to collection/grouping in `foodCollectionRecord` (inferred)
+- `foodEntryRecord.collectionEditID` matches `foodCollectionRecord.collectionEditID` for saved collection components. `collectionSortIndex` orders components and can be null.
 - `suggestionSampleRecord.foodEntryID` -> `foodEntryRecord.entryID` (inferred)
 - `suggestionSampleRecord.foodID` -> `foodRecord.foodID`
 - `goalRuleRecord.goalType` ties to both `goalRecord.goalType` and `goalRuleMetaRecord.goalType`
