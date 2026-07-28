@@ -34,6 +34,21 @@ export function createFixture(): string {
   db.prepare('INSERT INTO goalRuleRecord VALUES (?, ?, julianday(?), ?, ?, ?, ?, ?, ?)').run(id('33333333333333333333333333333333'), 'protein', '2026-01-01', null, 2, 10, null, 0, '2026-01-01')
   db.prepare('INSERT INTO goalRuleRecord VALUES (?, ?, julianday(?), ?, ?, ?, ?, ?, ?)').run(id('44444444444444444444444444444444'), 'carbohydrate', '2026-01-01', null, 3, 20, 30, 0, '2026-01-01')
   db.prepare('INSERT INTO goalRuleRecord VALUES (?, ?, julianday(?), ?, ?, ?, ?, ?, ?)').run(id('55555555555555555555555555555555'), 'caffeine', '2026-01-01', null, 4, null, null, 0, '2026-01-01')
+  // Newer FoodNoms goal-rule fields are nullable and absent from legacy rows.
+  // Keeping them on the baseline fixture lets the resolver exercise both the
+  // legacy bounds and migrated target/tolerance shapes.
+  db.exec(`
+    ALTER TABLE goalRuleRecord ADD COLUMN targetValue REAL;
+    ALTER TABLE goalRuleRecord ADD COLUMN toleranceValue REAL;
+    ALTER TABLE goalRuleRecord ADD COLUMN toleranceUnit INTEGER;
+    ALTER TABLE goalRuleRecord ADD COLUMN relativeFractionalLowerBound REAL;
+    ALTER TABLE goalRuleRecord ADD COLUMN relativeFractionalUpperBound REAL;
+    ALTER TABLE goalRuleRecord ADD COLUMN relativeFractionalTargetValue REAL;
+    ALTER TABLE goalRuleRecord ADD COLUMN relativePercentageLowerBound INTEGER;
+    ALTER TABLE goalRuleRecord ADD COLUMN relativePercentageUpperBound INTEGER;
+    ALTER TABLE goalRuleRecord ADD COLUMN relativeToCalorieGoal INTEGER;
+    ALTER TABLE goalRuleRecord ADD COLUMN calorieAdjustmentType INTEGER;
+  `)
   db.exec(`
     ALTER TABLE foodEntryRecord ADD COLUMN collectionEditID BLOB;
     ALTER TABLE foodEntryRecord ADD COLUMN collectionSortIndex INTEGER;
@@ -53,6 +68,38 @@ export function createFixture(): string {
   component.run(102, id('10112233445566778899aabbccddee02'), 'Milk', 50, 1, 100, 'g', '{"calories":50,"protein":3}', recipeEdit, null, '{"descriptionText":"cup","traits":0,"unit":"gram","value":240}')
   component.run(103, id('10112233445566778899aabbccddee03'), 'Berries', 25, 1, 100, 'g', '{"calories":25,"carbs":6}', recipeTwoEdit, 0, '{"descriptionText":"cup","traits":0,"unit":"gram","value":140}')
   component.run(104, id('10112233445566778899aabbccddee04'), 'Eggs', 140, 2, 100, 'g', '{"calories":70,"protein":6}', mealEdit, 0, '{"descriptionText":"egg","traits":0,"unit":"gram","value":50}')
+  db.close()
+  return path
+}
+
+/**
+ * Fixture containing the post-migration energy and macro goal tables. It
+ * intentionally starts from the legacy fixture so callers can compare
+ * fallback behaviour with the calibrated strategy data below.
+ */
+export function createCalibratedFixture(): string {
+  const path = createFixture()
+  const db = new Database(path)
+  db.exec(`
+    CREATE TABLE bodyMetricEntryRecord (id INTEGER PRIMARY KEY AUTOINCREMENT, entryID TEXT, day REAL, metricType INTEGER, value REAL, dateCreated TEXT);
+    CREATE TABLE bodyProfileRecord (id INTEGER PRIMARY KEY AUTOINCREMENT, dateCreated TEXT, sex INTEGER, birthdate REAL);
+    CREATE TABLE energyStrategyRecord (id INTEGER PRIMARY KEY AUTOINCREMENT, strategyID TEXT, dateCreated TEXT, method INTEGER, startDay REAL, restingEnergyCalculationMode INTEGER, manualRestingEnergy REAL, includedEnergyComponents INTEGER, activeEnergyScaleFactor REAL, manualTotalEnergy REAL, calibrationMeanDailyIntake REAL, calibrationWeightRate REAL, calibrationLoggedDayCount INTEGER, calibrationFlaggedDayCount INTEGER, calibrationWindowDays INTEGER, calibrationConfidence TEXT);
+    CREATE TABLE weightGoalRecord (id INTEGER PRIMARY KEY AUTOINCREMENT, weightGoalID TEXT, dateCreated TEXT, startDay REAL, desiredWeightChangePerWeek REAL, targetWeight REAL, isOverride INTEGER, startingWeight REAL, startingWeightDay REAL);
+    CREATE TABLE macroGoalStrategyRecord (id INTEGER PRIMARY KEY AUTOINCREMENT, strategyID TEXT, dateCreated TEXT, startDay REAL, mode INTEGER, proteinUnit TEXT, proteinValue REAL, carbsUnit TEXT, carbsValue REAL, fatUnit TEXT, fatValue REAL, toleranceValue REAL, toleranceUnit INTEGER, isOverride INTEGER);
+    CREATE TABLE activityEntryRecord (id INTEGER PRIMARY KEY AUTOINCREMENT, dateCreated TEXT, day REAL, activityType TEXT, value REAL);
+  `)
+  db.prepare('INSERT INTO bodyProfileRecord (dateCreated, sex, birthdate) VALUES (?, ?, ?)').run('2026-07-01', 1, 3000)
+  // Method 2 is FoodNoms' calibrated/manual-total-energy strategy. The
+  // calibrated value is deliberately distinct from the legacy 100 kcal goal.
+  db.prepare(`INSERT INTO energyStrategyRecord (strategyID, dateCreated, method, startDay, manualTotalEnergy, calibrationMeanDailyIntake, calibrationWeightRate, calibrationLoggedDayCount, calibrationFlaggedDayCount, calibrationWindowDays, calibrationConfidence) VALUES (?, ?, ?, julianday(?), ?, ?, ?, ?, ?, ?, ?)`)
+    .run('energy-calibrated', '2026-07-01', 2, '2026-07-01', 2200, 2085, -0.25, 28, 1, 28, 'high')
+  db.prepare('INSERT INTO bodyMetricEntryRecord (entryID, day, metricType, value, dateCreated) VALUES (?, julianday(?), ?, ?, ?)').run('weight-1', '2026-07-12', 1, 80, '2026-07-12')
+  db.prepare('INSERT INTO weightGoalRecord (weightGoalID, dateCreated, startDay, desiredWeightChangePerWeek, targetWeight, isOverride, startingWeight, startingWeightDay) VALUES (?, ?, julianday(?), ?, ?, ?, ?, julianday(?))').run('weight-goal-1', '2026-07-01', '2026-07-01', -0.25, 75, 0, 80, '2026-07-01')
+  db.prepare('INSERT INTO macroGoalStrategyRecord (strategyID, dateCreated, startDay, mode, proteinUnit, proteinValue, carbsUnit, carbsValue, fatUnit, fatValue, toleranceValue, toleranceUnit, isOverride) VALUES (?, ?, julianday(?), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').run('macro-1', '2026-07-01', '2026-07-01', 1, 'g', 150, 'percent', 40, 'percent', 30, 10, 1, 0)
+  // Effective-date and dedupe probes: same day and type, where the later row
+  // wins; an older row must not leak into the selected result.
+  db.prepare('INSERT INTO goalRuleRecord (ruleID, goalType, startDay, dayOfWeek, mode, lowerBound, upperBound, isOverride, dateCreated, targetValue, toleranceValue, toleranceUnit) VALUES (?, ?, julianday(?), ?, ?, ?, ?, ?, ?, ?, ?, ?)').run(Buffer.from('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', 'hex'), 'calorie', '2026-07-01', null, 1, null, null, 0, '2026-07-01', 2200, 100, 1)
+  db.prepare('INSERT INTO goalRuleRecord (ruleID, goalType, startDay, dayOfWeek, mode, lowerBound, upperBound, isOverride, dateCreated, targetValue, toleranceValue, toleranceUnit) VALUES (?, ?, julianday(?), ?, ?, ?, ?, ?, ?, ?, ?, ?)').run(Buffer.from('bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb', 'hex'), 'calorie', '2026-07-01', null, 1, null, null, 0, '2026-07-02', 2100, 50, 1)
   db.close()
   return path
 }

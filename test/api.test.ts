@@ -4,13 +4,13 @@ import {afterEach, describe, it} from 'mocha'
 import {execFileSync} from 'node:child_process'
 
 import {buildApp} from '../src/app.js'
-import {createFixture} from './fixture.js'
+import {createCalibratedFixture, createFixture} from './fixture.js'
 
 describe('SnackTrace API', () => {
   const apps: Awaited<ReturnType<typeof buildApp>>[] = []
   afterEach(async () => Promise.all(apps.splice(0).map((app) => app.close())))
 
-  it('normalizes binary IDs, scales nutrients, resolves a Sunday override, and excludes entries without a day', async () => {
+  it('normalizes binary IDs, scales nutrients, bakes date-scoped goals, and excludes entries without a day', async () => {
     const app = await buildApp({dbPath: createFixture(), logger: false}); apps.push(app)
     const response = await app.inject('/v1/days/2026-07-12')
     expect(response.statusCode).to.equal(200)
@@ -22,9 +22,51 @@ describe('SnackTrace API', () => {
     expect(entries[0].nutrients.carbs).to.equal(23.75)
     expect(entries[0].nutrients).not.to.have.property('calories')
     expect(entries[0].nutrients).to.include({biotin: 1.9, chlorine: 2.85, sugarsAdded: 4.75})
-    expect(body.goals.find((goal: {type: string}) => goal.type === 'calorie')).to.include({actual: 100, status: 'above', ratio: 1.1111})
-    expect(body.goals.find((goal: {type: string}) => goal.type === 'carbohydrate')).to.include({status: 'within', ratio: null})
-    expect(body.goals.find((goal: {type: string}) => goal.type === 'caffeine')).to.include({status: 'tracking', ratio: null})
+    const goalKeys = ['goalId', 'type', 'target', 'lowerBound', 'upperBound', 'actual']
+    for (const goal of body.goals) expect(goal).to.have.all.keys(goalKeys)
+    const calorie = body.goals.find((goal: {type: string}) => goal.type === 'calorie')
+    expect(calorie).to.include({actual: 100})
+    const carbohydrate = body.goals.find((goal: {type: string}) => goal.type === 'carbohydrate')
+    expect(carbohydrate).to.have.all.keys(goalKeys)
+    const caffeine = body.goals.find((goal: {type: string}) => goal.type === 'caffeine')
+    expect(caffeine).to.have.all.keys(goalKeys)
+    const dateScopedGoals = (await app.inject('/v1/days/2026-07-12/goals')).json()
+    expect(dateScopedGoals.date).to.equal('2026-07-12')
+    for (const goal of dateScopedGoals.items) expect(goal).to.have.all.keys(goalKeys)
+    expect(dateScopedGoals.items.find((goal: {type: string}) => goal.type === 'calorie')).to.include({actual: 100})
+  })
+
+  it('returns calibrated advanced goals through the HTTP API', async () => {
+    const path = createCalibratedFixture()
+    const writable = new Database(path)
+    writable.exec('ALTER TABLE goalRuleRecord ADD COLUMN minimum REAL')
+    writable.prepare("UPDATE energyStrategyRecord SET startDay = julianday('2026-07-12'), manualTotalEnergy = ?").run(2465.888555697443)
+    writable.prepare("UPDATE weightGoalRecord SET desiredWeightChangePerWeek = ?").run(-0.226796)
+    writable.prepare("UPDATE bodyMetricEntryRecord SET day = julianday('2026-07-12'), value = ?").run(83.3830032348633)
+    writable.prepare("UPDATE macroGoalStrategyRecord SET startDay = julianday('2026-07-12'), mode = 3, proteinUnit = 'gramsPerBodyWeight', proteinValue = ?, fatUnit = 'grams', fatValue = 65, carbsUnit = 'remainder', toleranceValue = .1, toleranceUnit = 1").run(2.20462)
+    writable.prepare("DELETE FROM goalRuleRecord WHERE goalType = 'calorie' AND isOverride = 1").run()
+    writable.prepare('INSERT INTO goalRecord VALUES (?, ?, ?)').run(Buffer.from('abababababababababababababababab', 'hex'), 'fat', 4)
+    writable.prepare("INSERT INTO goalRuleRecord (ruleID, goalType, startDay, mode, isOverride, dateCreated, minimum) VALUES (?, 'calorie', julianday('2026-07-12'), 4, 0, '2026-07-12', 1950)").run(Buffer.from('cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd', 'hex'))
+    writable.close()
+
+    const app = await buildApp({dbPath: path, logger: false}); apps.push(app)
+    const response = await app.inject('/v1/days/2026-07-12')
+    expect(response.statusCode).to.equal(200)
+    const body = response.json()
+    const goalKeys = ['goalId', 'type', 'target', 'lowerBound', 'upperBound', 'actual']
+    for (const goal of body.goals) {
+      expect(goal).to.have.all.keys(goalKeys)
+      expect(goal.actual).to.be.a('number')
+    }
+    const expected = {
+      calorie: {target: 2216.413, lowerBound: null, upperBound: 2216.413},
+      protein: {target: 183.8278, lowerBound: 165.4451, upperBound: 202.2106},
+      fat: {target: 65, lowerBound: 58.5, upperBound: 71.5},
+      carbohydrate: {target: 224.0254, lowerBound: 201.6229, upperBound: 246.4279},
+    } as const
+    for (const [type, values] of Object.entries(expected)) {
+      expect(body.goals.find((goal: {type: string}) => goal.type === type)).to.include(values)
+    }
   })
 
   it('distinguishes unknown meal type IDs while preserving custom and null labels', async () => {
@@ -62,6 +104,13 @@ describe('SnackTrace API', () => {
     expect((await app.inject('/v1/foods/nope')).json()).to.include({status: 404, code: 'NOT_FOUND'})
   })
 
+  it('retires the undated goals route', async () => {
+    const app = await buildApp({dbPath: createFixture(), logger: false}); apps.push(app)
+    const response = await app.inject('/v1/goals')
+    expect(response.statusCode).to.equal(404)
+    expect(response.json()).to.deep.equal({status: 404, code: 'NOT_FOUND', message: 'Route GET /v1/goals not found'})
+  })
+
   it('normalizes malformed and oversized URL paths as API errors', async () => {
     const app = await buildApp({dbPath: createFixture(), logger: false}); apps.push(app)
     for (const [url, status, issue] of [
@@ -82,7 +131,6 @@ describe('SnackTrace API', () => {
     for (const [url, path] of [
       ['/health?unexpected=1', '/health'],
       ['/openapi.json?unexpected=1', '/openapi.json'],
-      ['/v1/goals?unexpected=1', '/v1/goals'],
       ['/v1/library/recipes?unexpected=1', '/v1/library/recipes'],
       ['/v1/library/meals?unexpected=1', '/v1/library/meals'],
       ['/v1/foods/anything?unexpected=1', '/v1/foods/{foodId}'],
@@ -104,7 +152,6 @@ describe('SnackTrace API', () => {
       ['/v1/days/2026-07-12/meals', '/v1/days/{date}/meals'],
       ['/v1/days/2026-07-12/goals', '/v1/days/{date}/goals'],
       ['/v1/days?from=2026-07-12&to=2026-07-12', '/v1/days'],
-      ['/v1/goals', '/v1/goals'],
       ['/v1/library/recipes', '/v1/library/recipes'],
       ['/v1/library/meals', '/v1/library/meals'],
       ['/v1/foods', '/v1/foods'],
@@ -131,7 +178,7 @@ describe('SnackTrace API', () => {
     expect(databaseFailure.json()).to.deep.equal({status: 500, code: 'INTERNAL_ERROR', message: 'Internal server error'})
   })
 
-  it('returns an inclusive range with zero-entry days and daily goal status summaries', async () => {
+  it('returns an inclusive range with zero-entry days and baked daily goals', async () => {
     const app = await buildApp({dbPath: createFixture(), logger: false}); apps.push(app)
     const response = await app.inject('/v1/days?from=2026-07-12&to=2026-07-13')
     expect(response.statusCode).to.equal(200)
@@ -139,7 +186,8 @@ describe('SnackTrace API', () => {
     expect(body.dayCount).to.equal(2)
     expect(body.items).to.have.length(2)
     expect(body.items[1]).not.to.have.property('meals')
-    expect(body.goalSummary.find((goal: {type: string}) => goal.type === 'calorie').statusCounts).to.deep.equal({above: 1, within: 1})
+    expect(body).not.to.have.property('goalSummary')
+    for (const item of body.items) for (const goal of item.goals) expect(goal).to.have.all.keys(['goalId', 'type', 'target', 'lowerBound', 'upperBound', 'actual'])
   })
 
   it('standardizes public calories as sibling fields', async () => {
@@ -252,15 +300,30 @@ describe('SnackTrace API', () => {
     const app = await buildApp({logger: false}); apps.push(app)
     await app.ready()
     const document = app.swagger() as {paths: Record<string, unknown>}
-    expect(Object.keys(document.paths)).to.have.members(['/health', '/openapi.json', '/v1/days/{date}', '/v1/days/{date}/entries', '/v1/days/{date}/meals', '/v1/days/{date}/goals', '/v1/days', '/v1/goals', '/v1/library/recipes', '/v1/library/meals', '/v1/foods', '/v1/foods/{foodId}'])
+    expect(Object.keys(document.paths)).to.have.members(['/health', '/openapi.json', '/v1/days/{date}', '/v1/days/{date}/entries', '/v1/days/{date}/meals', '/v1/days/{date}/goals', '/v1/days', '/v1/library/recipes', '/v1/library/meals', '/v1/foods', '/v1/foods/{foodId}'])
+    expect(document.paths).not.to.have.property('/v1/goals')
     const daysRange = document.paths['/v1/days'] as {get: {summary: string; parameters: Array<{name: string; description: string}>}}
     expect(daysRange.get.summary).to.equal('Get an inclusive day range of at most 366 days')
     expect(daysRange.get.parameters.find((parameter) => parameter.name === 'to')?.description).to.include('at most 366 days')
+    type Schema = {properties?: Record<string, unknown>; required?: string[]; type?: string | string[]; anyOf?: Schema[]; oneOf?: Schema[]}
+    const schemaTypes = (value: unknown): string[] => {
+      const schema = value as Schema
+      if (Array.isArray(schema.type)) return schema.type
+      if (typeof schema.type === 'string') return [schema.type]
+      return [...(schema.anyOf ?? []), ...(schema.oneOf ?? [])].flatMap(schemaTypes)
+    }
     const visit = (value: unknown): void => {
       if (!value || typeof value !== 'object') return
-      const schema = value as {properties?: Record<string, {properties?: Record<string, unknown>} | unknown>}
+      const schema = value as Schema
       const nutrients = schema.properties?.nutrients as {properties?: Record<string, unknown>} | undefined
       if (nutrients) expect(nutrients.properties).not.to.have.property('calories')
+      if (Array.isArray(schema.required) && schema.required.includes('goalId')) {
+        expect(schema.required).to.deep.equal(['goalId', 'type', 'target', 'lowerBound', 'upperBound', 'actual'])
+        expect(Object.keys(schema.properties ?? {})).to.deep.equal(['goalId', 'type', 'target', 'lowerBound', 'upperBound', 'actual'])
+        const properties = schema.properties ?? {}
+        for (const key of ['target', 'lowerBound', 'upperBound']) expect(schemaTypes(properties[key]).sort()).to.deep.equal(['null', 'number'])
+        expect(schemaTypes(properties.actual)).to.deep.equal(['number'])
+      }
       for (const child of Object.values(value as Record<string, unknown>)) visit(child)
     }
     visit(document)

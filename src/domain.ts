@@ -59,6 +59,49 @@ type GoalRule = {
   upperBound: number | null
   isOverride: number | null
   dateCreated: string | null
+  targetValue: number | null
+  toleranceValue: number | null
+  toleranceUnit: number | null
+  relativeFractionalTargetValue: number | null
+  relativeFractionalLowerBound: number | null
+  relativeFractionalUpperBound: number | null
+  relativePercentageLowerBound: number | null
+  relativePercentageUpperBound: number | null
+  relativeToCalorieGoal: number | null
+  minimum: number | null
+}
+
+type EffectiveRow = {id: number; startDay: number | null; dateCreated: string | null}
+
+type EnergyStrategy = EffectiveRow & {method: number | null; manualTotalEnergy: number | null; restingEnergyCalculationMode: number | null; manualRestingEnergy: number | null; includedEnergyComponents: number | null; activeEnergyScaleFactor: number | null}
+type WeightGoal = EffectiveRow & {desiredWeightChangePerWeek: number | null; isOverride: number | null}
+type MacroGoalStrategy = EffectiveRow & {
+  mode: number | null
+  proteinUnit: string | null
+  proteinValue: number | null
+  carbsUnit: string | null
+  carbsValue: number | null
+  fatUnit: string | null
+  fatValue: number | null
+  toleranceValue: number | null
+  toleranceUnit: number | null
+  isOverride: number | null
+}
+type BodyMetric = EffectiveRow & {metricType: number | null; value: number | null}
+type ActivityEntry = EffectiveRow & {activityType: string | null; value: number | null}
+type BodyProfile = {id: number; dateCreated: string | null; sex: number | null; birthdate: number | null}
+type GoalDefinition = {goalID: string | Buffer; goalType: string; sortIndex: number}
+type GoalResult = {goalId: string | null; type: string; target: number | null; lowerBound: number | null; upperBound: number | null; actual: number}
+
+type GoalContext = {
+  goals: GoalDefinition[]
+  rules: GoalRule[]
+  energyStrategies: EnergyStrategy[]
+  weightGoals: WeightGoal[]
+  macroStrategies: MacroGoalStrategy[]
+  bodyMetrics: BodyMetric[]
+  activity: ActivityEntry[]
+  profiles: BodyProfile[]
 }
 
 const MEAL_NAMES: Record<string, string> = {1: 'Breakfast', 2: 'Lunch', 3: 'Dinner', 4: 'Snack', 5: 'Pre-Workout', 6: 'Post-Workout'}
@@ -87,6 +130,10 @@ function binaryDatabaseId(value: string): Buffer | undefined {
 
 function numeric(value: unknown): number | undefined {
   return typeof value === 'number' && Number.isFinite(value) ? round(value) : undefined
+}
+
+function finite(value: unknown): number | undefined {
+  return typeof value === 'number' && Number.isFinite(value) ? value : undefined
 }
 
 function parseNutrients(value: string | Buffer | null): Nutrients {
@@ -185,42 +232,165 @@ function foundationWeekday(date: string): number {
 }
 
 function dateDay(db: FoodNomsDatabase, date: string): number {
-  return (db.sqlite.prepare('SELECT julianday(?) AS value').get(date) as {value: number}).value
+  void db
+  return Date.parse(`${date}T00:00:00.000Z`) / 86_400_000 + 2_440_587.5
+}
+
+function effectiveFor<T extends EffectiveRow>(rows: T[], day: number): T | undefined {
+  return rows.filter((row) => row.startDay === null || row.startDay <= day).sort((a, b) => (b.startDay ?? -Infinity) - (a.startDay ?? -Infinity) || (b.dateCreated ?? '').localeCompare(a.dateCreated ?? '') || b.id - a.id)[0]
+}
+
+function effectiveStrategy<T extends EffectiveRow & {isOverride: number | null}>(rows: T[], day: number): T | undefined {
+  return effectiveFor(rows.filter((row) => Boolean(row.isOverride) && row.startDay === day), day) ?? effectiveFor(rows.filter((row) => !Boolean(row.isOverride)), day)
 }
 
 function resolveRule(rules: GoalRule[], date: string, day: number): GoalRule | undefined {
-  const active = rules.filter((rule) => (rule.startDay === null || rule.startDay <= day))
+  const active = rules.filter((rule) => rule.startDay === null || rule.startDay <= day)
   const overrides = active.filter((rule) => Boolean(rule.isOverride) && rule.dayOfWeek === foundationWeekday(date))
   const generic = active.filter((rule) => !Boolean(rule.isOverride) && rule.dayOfWeek === null)
-  return [...(overrides.length ? overrides : generic)].sort((a, b) => (b.startDay ?? -Infinity) - (a.startDay ?? -Infinity) || b.id - a.id)[0]
+  return effectiveFor(overrides.length ? overrides : generic, day)
 }
 
-function status(mode: GoalMode, actual: number, lower: number | null, upper: number | null): 'below' | 'within' | 'above' | 'tracking' {
-  if (mode === 'tracking') return 'tracking'
-  if (mode === 'maximum') return upper !== null && actual > upper ? 'above' : 'within'
-  if (mode === 'minimum') return lower !== null && actual < lower ? 'below' : 'within'
-  if (lower !== null && actual < lower) return 'below'
-  if (upper !== null && actual > upper) return 'above'
-  return 'within'
+function relativeGoalAmount(type: string, fraction: number | null, calorieTarget: number | null): number | null {
+  if (fraction === null || calorieTarget === null) return null
+  const caloriesPerGram = type === 'fat' ? 9 : type === 'protein' || type === 'carbohydrate' ? 4 : null
+  return caloriesPerGram === null ? null : calorieTarget * fraction / caloriesPerGram
 }
 
-function goalsFor(db: FoodNomsDatabase, date: string, totals: Nutrients) {
-  const goals = db.sqlite.prepare('SELECT goalID, goalType, sortIndex FROM goalRecord ORDER BY sortIndex ASC, goalType ASC').all() as Array<{goalID: string | Buffer; goalType: string; sortIndex: number}>
-  const rules = db.sqlite.prepare('SELECT rowid AS id, ruleID, goalType, startDay, dayOfWeek, mode, lowerBound, upperBound, isOverride, dateCreated FROM goalRuleRecord').all() as GoalRule[]
-  const day = dateDay(db, date)
-  return goals.map((goal) => {
-    const rule = resolveRule(rules.filter((item) => item.goalType === goal.goalType), date, day)
+function relativeGoalFraction(rule: GoalRule | undefined, kind: 'target' | 'lower' | 'upper'): number | null {
+  if (!Boolean(rule?.relativeToCalorieGoal)) return null
+  const fractional = kind === 'target'
+    ? finite(rule?.relativeFractionalTargetValue)
+    : kind === 'lower'
+      ? finite(rule?.relativeFractionalLowerBound)
+      : finite(rule?.relativeFractionalUpperBound)
+  if (fractional !== undefined) return fractional
+  if (kind === 'target') return null
+  const percentage = finite(kind === 'lower' ? rule?.relativePercentageLowerBound : rule?.relativePercentageUpperBound)
+  return percentage === undefined ? null : percentage / 100
+}
+
+function targetForRule(rule: GoalRule | undefined, type?: string, calorieTarget?: number | null): number | null {
+  const relativeTarget = type ? relativeGoalAmount(type, relativeGoalFraction(rule, 'target'), calorieTarget ?? null) : null
+  if (relativeTarget !== null) return relativeTarget
+  const target = numeric(rule?.targetValue)
+  if (target !== undefined) return target
+  const lower = numeric(rule?.lowerBound) ?? null
+  const upper = numeric(rule?.upperBound) ?? null
+  const mode = MODE[rule?.mode ?? 4] ?? 'tracking'
+  if (mode === 'minimum') return lower ?? upper ?? null
+  if (mode === 'maximum') return upper ?? lower ?? null
+  if (mode === 'range' && lower !== null && upper !== null) return round((lower + upper) / 2)
+  return null
+}
+
+function boundsForRule(rule: GoalRule | undefined, target: number | null, type?: string, calorieTarget?: number | null): {lowerBound: number | null; upperBound: number | null} {
+  const lowerBound = (type ? relativeGoalAmount(type, relativeGoalFraction(rule, 'lower'), calorieTarget ?? null) : null) ?? numeric(rule?.lowerBound) ?? null
+  const upperBound = (type ? relativeGoalAmount(type, relativeGoalFraction(rule, 'upper'), calorieTarget ?? null) : null) ?? numeric(rule?.upperBound) ?? null
+  if (target === null || numeric(rule?.toleranceValue) === undefined) {
     const mode = MODE[rule?.mode ?? 4] ?? 'tracking'
+    if (mode === 'maximum') return {lowerBound: null, upperBound}
+    if (mode === 'minimum') return {lowerBound, upperBound: null}
+    if (mode === 'range') return {lowerBound, upperBound}
+    return {lowerBound: null, upperBound: null}
+  }
+  const tolerance = numeric(rule?.toleranceValue)!
+  if (rule?.toleranceUnit === 1) return {lowerBound: round(target * (1 - tolerance)), upperBound: round(target * (1 + tolerance))}
+  return {lowerBound: round(target - tolerance), upperBound: round(target + tolerance)}
+}
+
+function advancedMacroTarget(type: 'protein' | 'carbohydrate' | 'fat', unit: string | null, value: number | null, calorieTarget: number | null, weight: number | null, proteinTarget: number | null, fatTarget: number | null): number | null {
+  if (unit === 'grams') return finite(value) ?? null
+  if (unit === 'gramsPerBodyWeight' && value !== null && weight !== null) return finite(value) !== undefined && finite(weight) !== undefined ? value * weight : null
+  if ((unit === 'percentage' || unit === 'percent') && value !== null && calorieTarget !== null) {
+    const fraction = value > 1 ? value / 100 : value
+    return calorieTarget * fraction / (type === 'fat' ? 9 : 4)
+  }
+  if (unit === 'remainder' && calorieTarget !== null && proteinTarget !== null && fatTarget !== null) return Math.max(0, (calorieTarget - proteinTarget * 4 - fatTarget * 9) / 4)
+  return null
+}
+
+function activityValue(entries: ActivityEntry[], type: string, day: number): number | null {
+  return finite(effectiveFor(entries.filter((entry) => entry.activityType === type && entry.startDay === day), day)?.value) ?? null
+}
+
+function automaticEnergyTarget(energy: EnergyStrategy, weightGoal: WeightGoal | undefined, floor: number, day: number, activity: ActivityEntry[], bodyMetrics: BodyMetric[], profiles: BodyProfile[]): number | null {
+  const adjustment = (finite(weightGoal?.desiredWeightChangePerWeek) ?? 0) * 7700 / 7
+  if (energy.method === 2 && finite(energy.manualTotalEnergy) !== undefined) return Math.max(floor, energy.manualTotalEnergy! + adjustment)
+  if (energy.method !== 1) return null
+  const resting = finite(energy.manualRestingEnergy) ?? (energy.restingEnergyCalculationMode === 3
+    ? (() => {
+        const values = Array.from({length: 7}, (_, index) => activityValue(activity, 'restingEnergy', day - index - 1)).filter((value): value is number => value !== null)
+        return values.length === 7 ? values.reduce((sum, value) => sum + value, 0) / values.length : null
+      })()
+    : energy.restingEnergyCalculationMode === 1
+      ? (() => {
+          const weight = finite(effectiveFor(bodyMetrics.filter((entry) => entry.metricType === 1), day)?.value)
+          const height = finite(effectiveFor(bodyMetrics.filter((entry) => entry.metricType === 2), day)?.value)
+          const profile = [...profiles].sort((a, b) => (b.dateCreated ?? '').localeCompare(a.dateCreated ?? '') || b.id - a.id)[0]
+          const birthdate = finite(profile?.birthdate)
+          if (weight === undefined || height === undefined || birthdate === undefined || profile?.sex === null || profile?.sex === undefined) return null
+          const age = (day - birthdate) / 365.2425
+          return 10 * weight + 6.25 * height - 5 * age + (profile.sex === 1 ? 5 : -161)
+        })()
+      : null)
+  if (resting === null) return null
+  const active = energy.includedEnergyComponents ? activityValue(activity, 'activeEnergy', day) : 0
+  if (active === null) return null
+  return Math.max(floor, resting + active * (finite(energy.activeEnergyScaleFactor) ?? 1) + adjustment)
+}
+
+function loadGoalContext(db: FoodNomsDatabase): GoalContext {
+  const goals = db.sqlite.prepare('SELECT goalID, goalType, sortIndex FROM goalRecord ORDER BY sortIndex ASC, goalType ASC').all() as GoalDefinition[]
+  const tableColumns = (table: string) => new Set((db.sqlite.prepare(`PRAGMA table_info("${table}")`).all() as Array<{name: string}>).map((column) => column.name))
+  const ruleColumns = tableColumns('goalRuleRecord')
+  const ruleColumn = (column: string) => ruleColumns.has(column) ? column : `NULL AS ${column}`
+  const rules = db.sqlite.prepare(`SELECT rowid AS id, ruleID, goalType, startDay, dayOfWeek, mode, lowerBound, upperBound, isOverride, dateCreated, ${ruleColumn('targetValue')}, ${ruleColumn('toleranceValue')}, ${ruleColumn('toleranceUnit')}, ${ruleColumn('relativeFractionalTargetValue')}, ${ruleColumn('relativeFractionalLowerBound')}, ${ruleColumn('relativeFractionalUpperBound')}, ${ruleColumn('relativePercentageLowerBound')}, ${ruleColumn('relativePercentageUpperBound')}, ${ruleColumn('relativeToCalorieGoal')}, ${ruleColumn('minimum')} FROM goalRuleRecord`).all() as GoalRule[]
+  const hasTable = (table: string) => (db.sqlite.prepare(`SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?`).get(table) as unknown) !== undefined
+  const energyStrategies = hasTable('energyStrategyRecord') ? db.sqlite.prepare('SELECT id, startDay, dateCreated, method, manualTotalEnergy, restingEnergyCalculationMode, manualRestingEnergy, includedEnergyComponents, activeEnergyScaleFactor FROM energyStrategyRecord').all() as EnergyStrategy[] : []
+  const weightGoals = hasTable('weightGoalRecord') ? db.sqlite.prepare('SELECT id, startDay, dateCreated, desiredWeightChangePerWeek, isOverride FROM weightGoalRecord').all() as WeightGoal[] : []
+  const macroStrategies = hasTable('macroGoalStrategyRecord') ? db.sqlite.prepare('SELECT id, startDay, dateCreated, mode, proteinUnit, proteinValue, carbsUnit, carbsValue, fatUnit, fatValue, toleranceValue, toleranceUnit, isOverride FROM macroGoalStrategyRecord').all() as MacroGoalStrategy[] : []
+  const bodyMetrics = hasTable('bodyMetricEntryRecord') ? db.sqlite.prepare('SELECT id, day AS startDay, dateCreated, metricType, value FROM bodyMetricEntryRecord WHERE metricType IN (1, 2)').all() as BodyMetric[] : []
+  const activity = hasTable('activityEntryRecord') ? db.sqlite.prepare("SELECT id, day AS startDay, dateCreated, activityType, value FROM activityEntryRecord WHERE activityType IN ('restingEnergy', 'activeEnergy')").all() as ActivityEntry[] : []
+  const profiles = hasTable('bodyProfileRecord') && tableColumns('bodyProfileRecord').has('dateCreated') ? db.sqlite.prepare('SELECT id, dateCreated, sex, birthdate FROM bodyProfileRecord').all() as BodyProfile[] : []
+  return {goals, rules, energyStrategies, weightGoals, macroStrategies, bodyMetrics, activity, profiles}
+}
+
+function goalsFor(db: FoodNomsDatabase, date: string, totals: Nutrients, context = loadGoalContext(db)): GoalResult[] {
+  const day = dateDay(db, date)
+  const energy = effectiveFor(context.energyStrategies, day)
+  const weightGoal = effectiveStrategy(context.weightGoals, day)
+  const macro = effectiveStrategy(context.macroStrategies, day)
+  const weight = finite(effectiveFor(context.bodyMetrics.filter((entry) => entry.metricType === 1), day)?.value) ?? null
+  const calorieRule = resolveRule(context.rules.filter((item) => item.goalType === 'calorie'), date, day)
+  const calorieFloor = numeric(calorieRule?.minimum) ?? 0
+  const automaticTarget = calorieRule?.mode === 4 && energy ? automaticEnergyTarget(energy, weightGoal, calorieFloor, day, context.activity, context.bodyMetrics, context.profiles) : null
+  const isAutomatic = automaticTarget !== null
+  const calorieTarget = isAutomatic ? automaticTarget : targetForRule(calorieRule)
+  const advancedTargets = macro?.mode === 3
+    ? (() => {
+        const protein = advancedMacroTarget('protein', macro.proteinUnit, macro.proteinValue, calorieTarget, weight, null, null)
+        const fat = advancedMacroTarget('fat', macro.fatUnit, macro.fatValue, calorieTarget, weight, protein, null)
+        return {protein, fat, carbohydrate: advancedMacroTarget('carbohydrate', macro.carbsUnit, macro.carbsValue, calorieTarget, weight, protein, fat)}
+      })()
+    : undefined
+  return context.goals.map((goal) => {
+    const rule = resolveRule(context.rules.filter((item) => item.goalType === goal.goalType), date, day)
     const actual = round(totals[GOAL_NUTRIENT[goal.goalType] ?? goal.goalType] ?? 0)
-    const lowerBound = numeric(rule?.lowerBound) ?? null
-    const upperBound = numeric(rule?.upperBound) ?? null
-    const singleBound = [lowerBound, upperBound].filter((bound) => bound !== null && bound !== 0)
-    const ratio = (mode === 'maximum' || mode === 'minimum') && singleBound.length === 1 ? round(actual / singleBound[0]!) : null
-    return {goalId: normalizeId(goal.goalID), type: goal.goalType, mode, lowerBound, upperBound, actual, status: status(mode, actual, lowerBound, upperBound), ratio}
+    const hasAdvancedMacro = macro?.mode === 3 && (goal.goalType === 'protein' || goal.goalType === 'carbohydrate' || goal.goalType === 'fat')
+    const target = goal.goalType === 'calorie' ? calorieTarget : hasAdvancedMacro ? advancedTargets?.[goal.goalType as keyof typeof advancedTargets] ?? null : targetForRule(rule, goal.goalType, calorieTarget)
+    const bounds = goal.goalType === 'calorie' && isAutomatic && target !== null
+      ? numeric(calorieRule?.toleranceValue) === undefined
+        ? (finite(weightGoal?.desiredWeightChangePerWeek) ?? 0) > 0 ? {lowerBound: round(target), upperBound: null} : {lowerBound: null, upperBound: round(target)}
+        : boundsForRule(calorieRule, target, goal.goalType, calorieTarget)
+      : hasAdvancedMacro && target !== null
+        ? boundsForRule({...rule!, toleranceValue: macro!.toleranceValue, toleranceUnit: macro!.toleranceUnit}, target)
+        : boundsForRule(rule, target, goal.goalType, calorieTarget)
+    return {goalId: normalizeId(goal.goalID), type: goal.goalType, target: target === null ? null : round(target), lowerBound: bounds.lowerBound === null ? null : round(bounds.lowerBound), upperBound: bounds.upperBound === null ? null : round(bounds.upperBound), actual}
   })
 }
 
-function summarizeDay(db: FoodNomsDatabase, date: string, raw: EntryRow[], definitions = mealTypes(db)) {
+function summarizeDay(db: FoodNomsDatabase, date: string, raw: EntryRow[], definitions = mealTypes(db), goalContext = loadGoalContext(db)) {
   const entries = raw.map(entry)
   const totals = sumNutrients(entries.map((item) => item.nutrients))
   totals.calories = round(raw.reduce((total, item) => total + (item.calories ?? 0), 0))
@@ -230,7 +400,7 @@ function summarizeDay(db: FoodNomsDatabase, date: string, raw: EntryRow[], defin
     grouped.set(key, [...(grouped.get(key) ?? []), item])
   }
   const meals = [...grouped.entries()].map(([mealTypeId, items]) => ({mealTypeId: mealTypeId || null, name: definitions.get(mealTypeId)?.name ?? (mealTypeId ? `Meal ${mealTypeId}` : 'Meal'), sortIndex: definitions.get(mealTypeId)?.sortIndex ?? Number.MAX_SAFE_INTEGER, totals: {calories: round(items.reduce((total, item) => total + item.calories, 0)), nutrients: sumNutrients(items.map((item) => item.nutrients))}, entries: items})).sort((a, b) => a.sortIndex - b.sortIndex)
-  return {date, totals: {calories: totals.calories, nutrients: Object.fromEntries(Object.entries(totals).filter(([name]) => name !== 'calories'))}, goals: goalsFor(db, date, totals), meals, entries}
+  return {date, totals: {calories: totals.calories, nutrients: Object.fromEntries(Object.entries(totals).filter(([name]) => name !== 'calories'))}, goals: goalsFor(db, date, totals, goalContext), meals, entries}
 }
 
 export function daySummary(db: FoodNomsDatabase, date: string) {
@@ -247,24 +417,11 @@ export function rangeSummary(db: FoodNomsDatabase, from: string, to: string) {
     rowsByDate.set(row.localDate, [...(rowsByDate.get(row.localDate) ?? []), row])
   }
   const definitions = mealTypes(db)
-  const daily = dates.map((date) => summarizeDay(db, date, rowsByDate.get(date) ?? [], definitions))
+  const goalContext = loadGoalContext(db)
+  const daily = dates.map((date) => summarizeDay(db, date, rowsByDate.get(date) ?? [], definitions, goalContext))
   const nutrients = sumNutrients(daily.map((day) => ({...day.totals.nutrients, calories: day.totals.calories})))
   const averages = Object.fromEntries(Object.entries(nutrients).map(([name, amount]) => [name, round(amount / dates.length)]))
-  const goalSummaries = new Map<string, {type: string; actualTotal: number; statuses: Record<string, number>; count: number}>()
-  for (const day of daily) for (const goal of day.goals) {
-    const summary = goalSummaries.get(goal.type) ?? {type: goal.type, actualTotal: 0, statuses: {}, count: 0}
-    summary.actualTotal += goal.actual
-    summary.statuses[goal.status] = (summary.statuses[goal.status] ?? 0) + 1
-    summary.count++
-    goalSummaries.set(goal.type, summary)
-  }
-  return {from, to, dayCount: dates.length, totals: {calories: nutrients.calories ?? 0, nutrients: Object.fromEntries(Object.entries(nutrients).filter(([name]) => name !== 'calories'))}, averages: {calories: averages.calories ?? 0, nutrients: Object.fromEntries(Object.entries(averages).filter(([name]) => name !== 'calories'))}, items: daily.map((item) => ({date: item.date, totals: item.totals, goals: item.goals})), goalSummary: [...goalSummaries.values()].map((item) => ({type: item.type, averageActual: round(item.actualTotal / item.count), statusCounts: item.statuses}))}
-}
-
-export function allGoals(db: FoodNomsDatabase) {
-  const goals = db.sqlite.prepare('SELECT goalID, goalType, sortIndex FROM goalRecord ORDER BY sortIndex ASC, goalType ASC').all() as Array<{goalID: string | Buffer; goalType: string; sortIndex: number}>
-  const rules = db.sqlite.prepare('SELECT rowid AS id, ruleID, goalType, startDay, dayOfWeek, mode, lowerBound, upperBound, isOverride, dateCreated FROM goalRuleRecord ORDER BY goalType ASC, startDay ASC, rowid ASC').all() as GoalRule[]
-  return {items: goals.map((goal) => ({goalId: normalizeId(goal.goalID), type: goal.goalType, history: rules.filter((rule) => rule.goalType === goal.goalType).map((rule) => ({ruleId: normalizeId(rule.ruleID), effectiveDate: rule.startDay === null ? null : (db.sqlite.prepare('SELECT date(?) AS value').get(rule.startDay) as {value: string}).value, startDay: rule.startDay, weekday: rule.dayOfWeek, isOverride: Boolean(rule.isOverride), mode: MODE[rule.mode ?? 4] ?? 'tracking', lowerBound: rule.lowerBound, upperBound: rule.upperBound}))}))}
+  return {from, to, dayCount: dates.length, totals: {calories: nutrients.calories ?? 0, nutrients: Object.fromEntries(Object.entries(nutrients).filter(([name]) => name !== 'calories'))}, averages: {calories: averages.calories ?? 0, nutrients: Object.fromEntries(Object.entries(averages).filter(([name]) => name !== 'calories'))}, items: daily.map((item) => ({date: item.date, totals: item.totals, goals: item.goals}))}
 }
 
 export function listFoods(db: FoodNomsDatabase, options: {q?: string; limit: number; sort: 'name' | '-lastLoggedAt'; cursor?: string}) {

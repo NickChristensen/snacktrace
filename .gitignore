@@ -3,3 +3,12 @@ build/
 coverage/
 .env
 *.db
+*.db-wal
+*.db-shm
+*.sqlite-wal
+*.sqlite-shm
+*.sqlite3-wal
+*.sqlite3-shm
+foodnoms-pre-update-*/
+foodnoms-post-update-*/
+foodnoms-calibrated-energy-*/

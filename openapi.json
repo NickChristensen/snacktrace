@@ -534,16 +534,15 @@
                       "type": "array",
                       "items": {
                         "additionalProperties": false,
+                        "description": "A date-scoped baked goal. Bounds are inclusive: only upper means stay at or below it, only lower means stay at or above it, both form an acceptable range, and neither is informational.",
                         "type": "object",
                         "required": [
                           "goalId",
                           "type",
-                          "mode",
+                          "target",
                           "lowerBound",
                           "upperBound",
-                          "actual",
-                          "status",
-                          "ratio"
+                          "actual"
                         ],
                         "properties": {
                           "goalId": {
@@ -559,40 +558,26 @@
                           "type": {
                             "type": "string"
                           },
-                          "mode": {
+                          "target": {
                             "anyOf": [
                               {
-                                "type": "string",
-                                "enum": [
-                                  "maximum"
-                                ]
+                                "description": "Date-specific target amount, rounded to four decimal places.",
+                                "type": "number"
                               },
                               {
-                                "type": "string",
-                                "enum": [
-                                  "minimum"
-                                ]
-                              },
-                              {
-                                "type": "string",
-                                "enum": [
-                                  "range"
-                                ]
-                              },
-                              {
-                                "type": "string",
-                                "enum": [
-                                  "tracking"
-                                ]
+                                "description": "No target is configured for this goal on this date.",
+                                "type": "null"
                               }
                             ]
                           },
                           "lowerBound": {
                             "anyOf": [
                               {
+                                "description": "Inclusive lower bound, rounded to four decimal places.",
                                 "type": "number"
                               },
                               {
+                                "description": "No inclusive lower bound is configured for this goal on this date.",
                                 "type": "null"
                               }
                             ]
@@ -600,53 +585,18 @@
                           "upperBound": {
                             "anyOf": [
                               {
+                                "description": "Inclusive upper bound, rounded to four decimal places.",
                                 "type": "number"
                               },
                               {
+                                "description": "No inclusive upper bound is configured for this goal on this date.",
                                 "type": "null"
                               }
                             ]
                           },
                           "actual": {
+                            "description": "Actual amount for the requested date, rounded to four decimal places.",
                             "type": "number"
-                          },
-                          "status": {
-                            "anyOf": [
-                              {
-                                "type": "string",
-                                "enum": [
-                                  "below"
-                                ]
-                              },
-                              {
-                                "type": "string",
-                                "enum": [
-                                  "within"
-                                ]
-                              },
-                              {
-                                "type": "string",
-                                "enum": [
-                                  "above"
-                                ]
-                              },
-                              {
-                                "type": "string",
-                                "enum": [
-                                  "tracking"
-                                ]
-                              }
-                            ]
-                          },
-                          "ratio": {
-                            "anyOf": [
-                              {
-                                "type": "number"
-                              },
-                              {
-                                "type": "null"
-                              }
-                            ]
                           }
                         }
                       }
@@ -2374,16 +2324,15 @@
                       "type": "array",
                       "items": {
                         "additionalProperties": false,
+                        "description": "A date-scoped baked goal. Bounds are inclusive: only upper means stay at or below it, only lower means stay at or above it, both form an acceptable range, and neither is informational.",
                         "type": "object",
                         "required": [
                           "goalId",
                           "type",
-                          "mode",
+                          "target",
                           "lowerBound",
                           "upperBound",
-                          "actual",
-                          "status",
-                          "ratio"
+                          "actual"
                         ],
                         "properties": {
                           "goalId": {
@@ -2399,40 +2348,26 @@
                           "type": {
                             "type": "string"
                           },
-                          "mode": {
+                          "target": {
                             "anyOf": [
                               {
-                                "type": "string",
-                                "enum": [
-                                  "maximum"
-                                ]
+                                "description": "Date-specific target amount, rounded to four decimal places.",
+                                "type": "number"
                               },
                               {
-                                "type": "string",
-                                "enum": [
-                                  "minimum"
-                                ]
-                              },
-                              {
-                                "type": "string",
-                                "enum": [
-                                  "range"
-                                ]
-                              },
-                              {
-                                "type": "string",
-                                "enum": [
-                                  "tracking"
-                                ]
+                                "description": "No target is configured for this goal on this date.",
+                                "type": "null"
                               }
                             ]
                           },
                           "lowerBound": {
                             "anyOf": [
                               {
+                                "description": "Inclusive lower bound, rounded to four decimal places.",
                                 "type": "number"
                               },
                               {
+                                "description": "No inclusive lower bound is configured for this goal on this date.",
                                 "type": "null"
                               }
                             ]
@@ -2440,53 +2375,18 @@
                           "upperBound": {
                             "anyOf": [
                               {
+                                "description": "Inclusive upper bound, rounded to four decimal places.",
                                 "type": "number"
                               },
                               {
+                                "description": "No inclusive upper bound is configured for this goal on this date.",
                                 "type": "null"
                               }
                             ]
                           },
                           "actual": {
+                            "description": "Actual amount for the requested date, rounded to four decimal places.",
                             "type": "number"
-                          },
-                          "status": {
-                            "anyOf": [
-                              {
-                                "type": "string",
-                                "enum": [
-                                  "below"
-                                ]
-                              },
-                              {
-                                "type": "string",
-                                "enum": [
-                                  "within"
-                                ]
-                              },
-                              {
-                                "type": "string",
-                                "enum": [
-                                  "above"
-                                ]
-                              },
-                              {
-                                "type": "string",
-                                "enum": [
-                                  "tracking"
-                                ]
-                              }
-                            ]
-                          },
-                          "ratio": {
-                            "anyOf": [
-                              {
-                                "type": "number"
-                              },
-                              {
-                                "type": "null"
-                              }
-                            ]
                           }
                         }
                       }
@@ -2632,8 +2532,7 @@
                     "dayCount",
                     "totals",
                     "averages",
-                    "items",
-                    "goalSummary"
+                    "items"
                   ],
                   "properties": {
                     "from": {
@@ -3230,16 +3129,15 @@
                             "type": "array",
                             "items": {
                               "additionalProperties": false,
+                              "description": "A date-scoped baked goal. Bounds are inclusive: only upper means stay at or below it, only lower means stay at or above it, both form an acceptable range, and neither is informational.",
                               "type": "object",
                               "required": [
                                 "goalId",
                                 "type",
-                                "mode",
+                                "target",
                                 "lowerBound",
                                 "upperBound",
-                                "actual",
-                                "status",
-                                "ratio"
+                                "actual"
                               ],
                               "properties": {
                                 "goalId": {
@@ -3255,40 +3153,26 @@
                                 "type": {
                                   "type": "string"
                                 },
-                                "mode": {
+                                "target": {
                                   "anyOf": [
                                     {
-                                      "type": "string",
-                                      "enum": [
-                                        "maximum"
-                                      ]
+                                      "description": "Date-specific target amount, rounded to four decimal places.",
+                                      "type": "number"
                                     },
                                     {
-                                      "type": "string",
-                                      "enum": [
-                                        "minimum"
-                                      ]
-                                    },
-                                    {
-                                      "type": "string",
-                                      "enum": [
-                                        "range"
-                                      ]
-                                    },
-                                    {
-                                      "type": "string",
-                                      "enum": [
-                                        "tracking"
-                                      ]
+                                      "description": "No target is configured for this goal on this date.",
+                                      "type": "null"
                                     }
                                   ]
                                 },
                                 "lowerBound": {
                                   "anyOf": [
                                     {
+                                      "description": "Inclusive lower bound, rounded to four decimal places.",
                                       "type": "number"
                                     },
                                     {
+                                      "description": "No inclusive lower bound is configured for this goal on this date.",
                                       "type": "null"
                                     }
                                   ]
@@ -3296,92 +3180,19 @@
                                 "upperBound": {
                                   "anyOf": [
                                     {
+                                      "description": "Inclusive upper bound, rounded to four decimal places.",
                                       "type": "number"
                                     },
                                     {
+                                      "description": "No inclusive upper bound is configured for this goal on this date.",
                                       "type": "null"
                                     }
                                   ]
                                 },
                                 "actual": {
+                                  "description": "Actual amount for the requested date, rounded to four decimal places.",
                                   "type": "number"
-                                },
-                                "status": {
-                                  "anyOf": [
-                                    {
-                                      "type": "string",
-                                      "enum": [
-                                        "below"
-                                      ]
-                                    },
-                                    {
-                                      "type": "string",
-                                      "enum": [
-                                        "within"
-                                      ]
-                                    },
-                                    {
-                                      "type": "string",
-                                      "enum": [
-                                        "above"
-                                      ]
-                                    },
-                                    {
-                                      "type": "string",
-                                      "enum": [
-                                        "tracking"
-                                      ]
-                                    }
-                                  ]
-                                },
-                                "ratio": {
-                                  "anyOf": [
-                                    {
-                                      "type": "number"
-                                    },
-                                    {
-                                      "type": "null"
-                                    }
-                                  ]
                                 }
-                              }
-                            }
-                          }
-                        }
-                      }
-                    },
-                    "goalSummary": {
-                      "type": "array",
-                      "items": {
-                        "additionalProperties": false,
-                        "type": "object",
-                        "required": [
-                          "type",
-                          "averageActual",
-                          "statusCounts"
-                        ],
-                        "properties": {
-                          "type": {
-                            "type": "string"
-                          },
-                          "averageActual": {
-                            "type": "number"
-                          },
-                          "statusCounts": {
-                            "additionalProperties": false,
-                            "type": "object",
-                            "properties": {
-                              "below": {
-                                "type": "integer"
-                              },
-                              "within": {
-                                "type": "integer"
-                              },
-                              "above": {
-                                "type": "integer"
-                              },
-                              "tracking": {
-                                "type": "integer"
                               }
                             }
                           }
@@ -3467,307 +3278,6 @@
                       }
                     }
                   ]
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "additionalProperties": false,
-                  "type": "object",
-                  "required": [
-                    "status",
-                    "code",
-                    "message"
-                  ],
-                  "properties": {
-                    "status": {
-                      "type": "integer"
-                    },
-                    "code": {
-                      "type": "string"
-                    },
-                    "message": {
-                      "type": "string"
-                    },
-                    "issues": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "required": [
-                          "path",
-                          "message"
-                        ],
-                        "properties": {
-                          "path": {
-                            "type": "string"
-                          },
-                          "message": {
-                            "type": "string"
-                          }
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/goals": {
-      "get": {
-        "operationId": "getGoals",
-        "summary": "Get dated goal rule history",
-        "tags": [
-          "goals"
-        ],
-        "responses": {
-          "200": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "additionalProperties": false,
-                  "type": "object",
-                  "required": [
-                    "items"
-                  ],
-                  "properties": {
-                    "items": {
-                      "type": "array",
-                      "items": {
-                        "additionalProperties": false,
-                        "type": "object",
-                        "required": [
-                          "goalId",
-                          "type",
-                          "history"
-                        ],
-                        "properties": {
-                          "goalId": {
-                            "anyOf": [
-                              {
-                                "type": "string"
-                              },
-                              {
-                                "type": "null"
-                              }
-                            ]
-                          },
-                          "type": {
-                            "type": "string"
-                          },
-                          "history": {
-                            "type": "array",
-                            "items": {
-                              "additionalProperties": false,
-                              "type": "object",
-                              "required": [
-                                "ruleId",
-                                "effectiveDate",
-                                "startDay",
-                                "weekday",
-                                "isOverride",
-                                "mode",
-                                "lowerBound",
-                                "upperBound"
-                              ],
-                              "properties": {
-                                "ruleId": {
-                                  "anyOf": [
-                                    {
-                                      "type": "string"
-                                    },
-                                    {
-                                      "type": "null"
-                                    }
-                                  ]
-                                },
-                                "effectiveDate": {
-                                  "anyOf": [
-                                    {
-                                      "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
-                                      "description": "Calendar date in strict ISO 8601 YYYY-MM-DD form.",
-                                      "type": "string"
-                                    },
-                                    {
-                                      "type": "null"
-                                    }
-                                  ]
-                                },
-                                "startDay": {
-                                  "anyOf": [
-                                    {
-                                      "type": "number"
-                                    },
-                                    {
-                                      "type": "null"
-                                    }
-                                  ]
-                                },
-                                "weekday": {
-                                  "anyOf": [
-                                    {
-                                      "type": "integer"
-                                    },
-                                    {
-                                      "type": "null"
-                                    }
-                                  ]
-                                },
-                                "isOverride": {
-                                  "type": "boolean"
-                                },
-                                "mode": {
-                                  "anyOf": [
-                                    {
-                                      "type": "string",
-                                      "enum": [
-                                        "maximum"
-                                      ]
-                                    },
-                                    {
-                                      "type": "string",
-                                      "enum": [
-                                        "minimum"
-                                      ]
-                                    },
-                                    {
-                                      "type": "string",
-                                      "enum": [
-                                        "range"
-                                      ]
-                                    },
-                                    {
-                                      "type": "string",
-                                      "enum": [
-                                        "tracking"
-                                      ]
-                                    }
-                                  ]
-                                },
-                                "lowerBound": {
-                                  "anyOf": [
-                                    {
-                                      "type": "number"
-                                    },
-                                    {
-                                      "type": "null"
-                                    }
-                                  ]
-                                },
-                                "upperBound": {
-                                  "anyOf": [
-                                    {
-                                      "type": "number"
-                                    },
-                                    {
-                                      "type": "null"
-                                    }
-                                  ]
-                                }
-                              }
-                            }
-                          }
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "additionalProperties": false,
-                  "type": "object",
-                  "required": [
-                    "status",
-                    "code",
-                    "message"
-                  ],
-                  "properties": {
-                    "status": {
-                      "type": "integer"
-                    },
-                    "code": {
-                      "type": "string"
-                    },
-                    "message": {
-                      "type": "string"
-                    },
-                    "issues": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "required": [
-                          "path",
-                          "message"
-                        ],
-                        "properties": {
-                          "path": {
-                            "type": "string"
-                          },
-                          "message": {
-                            "type": "string"
-                          }
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "additionalProperties": false,
-                  "type": "object",
-                  "required": [
-                    "status",
-                    "code",
-                    "message"
-                  ],
-                  "properties": {
-                    "status": {
-                      "type": "integer"
-                    },
-                    "code": {
-                      "type": "string"
-                    },
-                    "message": {
-                      "type": "string"
-                    },
-                    "issues": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "required": [
-                          "path",
-                          "message"
-                        ],
-                        "properties": {
-                          "path": {
-                            "type": "string"
-                          },
-                          "message": {
-                            "type": "string"
-                          }
-                        }
-                      }
-                    }
-                  }
                 }
               }
             }
