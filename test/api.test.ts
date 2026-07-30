@@ -2,6 +2,7 @@ import {expect} from 'chai'
 import Database from 'better-sqlite3'
 import {afterEach, describe, it} from 'mocha'
 import {execFileSync} from 'node:child_process'
+import {dirname, join} from 'node:path'
 
 import {buildApp} from '../src/app.js'
 import {createCalibratedFixture, createFixture} from './fixture.js'
@@ -96,6 +97,31 @@ describe('SnackTrace API', () => {
     expect(response.json()).to.deep.equal({status: 503, code: 'DATABASE_UNAVAILABLE', message: 'FoodNoms database is unavailable'})
   })
 
+  it('reports local FoodNoms freshness from the sibling logistics database', async () => {
+    const path = createFixture()
+    const logisticsPath = join(dirname(path), 'logistics.db')
+    const logistics = new Database(logisticsPath)
+    logistics.exec('CREATE TABLE event (id INTEGER PRIMARY KEY, date DATETIME NOT NULL)')
+    logistics.prepare('INSERT INTO event (date) VALUES (?)').run('2026-07-30 19:42:45.001')
+    logistics.prepare('INSERT INTO event (date) VALUES (?)').run('2026-07-30 19:42:46.965')
+    logistics.close()
+    const app = await buildApp({dbPath: path, logger: false}); apps.push(app)
+
+    expect((await app.inject('/v1/freshness')).json()).to.deep.equal({lastUpdate: '2026-07-30T19:42:46.965Z'})
+    const writer = new Database(logisticsPath)
+    writer.exec('DELETE FROM event')
+    writer.close()
+    expect((await app.inject('/v1/freshness')).json()).to.deep.equal({lastUpdate: null})
+  })
+
+  it('returns a JSON service-unavailable error when local freshness cannot be read', async () => {
+    const app = await buildApp({dbPath: createFixture(), logger: false}); apps.push(app)
+    const response = await app.inject('/v1/freshness')
+    expect(response.statusCode).to.equal(503)
+    expect(response.headers['content-type']).to.match(/^application\/json/)
+    expect(response.json()).to.deep.equal({status: 503, code: 'DATABASE_UNAVAILABLE', message: 'FoodNoms logistics database is unavailable'})
+  })
+
   it('rejects unknown query parameters, invalid ranges, bad cursors, and missing foods', async () => {
     const app = await buildApp({dbPath: createFixture(), logger: false}); apps.push(app)
     expect((await app.inject('/v1/foods?unknown=1')).statusCode).to.equal(400)
@@ -131,6 +157,7 @@ describe('SnackTrace API', () => {
     for (const [url, path] of [
       ['/health?unexpected=1', '/health'],
       ['/openapi.json?unexpected=1', '/openapi.json'],
+      ['/v1/freshness?unexpected=1', '/v1/freshness'],
       ['/v1/library/recipes?unexpected=1', '/v1/library/recipes'],
       ['/v1/library/meals?unexpected=1', '/v1/library/meals'],
       ['/v1/foods/anything?unexpected=1', '/v1/foods/{foodId}'],
@@ -140,6 +167,16 @@ describe('SnackTrace API', () => {
       expect(response.json()).to.include({status: 400, code: 'VALIDATION_ERROR', message: 'Request validation failed'})
       expect(document.paths[path].get.responses).to.have.property('400')
     }
+  })
+
+  it('documents freshness as a system endpoint with an available JSON error', async () => {
+    const app = await buildApp({logger: false}); apps.push(app)
+    await app.ready()
+    const document = app.swagger() as {paths: Record<string, {get: {operationId: string; tags: string[]; description: string; responses: Record<string, unknown>}}>}
+    const operation = document.paths['/v1/freshness'].get
+    expect(operation).to.include({operationId: 'getFreshness', description: 'Returns when FoodNoms data was most recently updated locally.'})
+    expect(operation.tags).to.deep.equal(['system'])
+    expect(operation.responses).to.have.all.keys('200', '400', '503')
   })
 
   it('documents operational failures for every data route that reaches the 500 handler', async () => {
@@ -300,7 +337,7 @@ describe('SnackTrace API', () => {
     const app = await buildApp({logger: false}); apps.push(app)
     await app.ready()
     const document = app.swagger() as {paths: Record<string, unknown>}
-    expect(Object.keys(document.paths)).to.have.members(['/health', '/openapi.json', '/v1/days/{date}', '/v1/days/{date}/entries', '/v1/days/{date}/meals', '/v1/days/{date}/goals', '/v1/days', '/v1/library/recipes', '/v1/library/meals', '/v1/foods', '/v1/foods/{foodId}'])
+    expect(Object.keys(document.paths)).to.have.members(['/health', '/openapi.json', '/v1/freshness', '/v1/days/{date}', '/v1/days/{date}/entries', '/v1/days/{date}/meals', '/v1/days/{date}/goals', '/v1/days', '/v1/library/recipes', '/v1/library/meals', '/v1/foods', '/v1/foods/{foodId}'])
     expect(document.paths).not.to.have.property('/v1/goals')
     const daysRange = document.paths['/v1/days'] as {get: {summary: string; parameters: Array<{name: string; description: string}>}}
     expect(daysRange.get.summary).to.equal('Get an inclusive day range of at most 366 days')

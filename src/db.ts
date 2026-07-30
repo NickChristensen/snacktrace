@@ -1,5 +1,6 @@
 import Database from 'better-sqlite3'
 import {Kysely, SqliteDialect} from 'kysely'
+import {dirname, join} from 'node:path'
 
 export interface FoodNomsSchema {
   foodEntryRecord: {
@@ -77,6 +78,7 @@ const MIGRATED: Record<string, string[]> = {
 export class FoodNomsDatabase {
   readonly sqlite: Database.Database
   readonly kysely: Kysely<FoodNomsSchema>
+  readonly logisticsPath: string
 
   constructor(dbPath: string) {
     if (!dbPath) throw new Error('FOODNOMS_DB_PATH is required')
@@ -84,6 +86,7 @@ export class FoodNomsDatabase {
     this.sqlite.pragma('query_only = ON')
     this.validateSchema()
     this.kysely = new Kysely<FoodNomsSchema>({dialect: new SqliteDialect({database: this.sqlite})})
+    this.logisticsPath = join(dirname(dbPath), 'logistics.db')
   }
 
   private validateSchema(): void {
@@ -104,6 +107,17 @@ export class FoodNomsDatabase {
 
   read<T>(work: () => T): T {
     return this.sqlite.transaction(work)()
+  }
+
+  freshness(): string | null {
+    const logistics = new Database(this.logisticsPath, {readonly: true, fileMustExist: true})
+    try {
+      logistics.pragma('query_only = ON')
+      const row = logistics.prepare("SELECT strftime('%Y-%m-%dT%H:%M:%fZ', MAX(date)) AS lastUpdate FROM event").get() as {lastUpdate?: string | null}
+      return row?.lastUpdate ?? null
+    } finally {
+      logistics.close()
+    }
   }
 
   async close(): Promise<void> {

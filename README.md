@@ -20,6 +20,7 @@ The API listens on `127.0.0.1:3000` by default. `GET /health` returns `{"status"
 - `GET /v1/library/recipes` and `/v1/library/meals` return saved FoodNoms collections (types 3 and 2). Collections are ordered case-insensitively by name, then collection ID; components are joined from `foodEntryRecord.collectionEditID` and preserve nullable `collectionSortIndex`.
 - `GET /v1/foods?q=&limit=50&cursor=&sort=name|-lastLoggedAt` returns deterministic latest food snapshots. `cursor` is opaque and must be used with the same sort.
 - `GET /v1/foods/:foodId` returns the latest deterministic snapshot from entry history.
+- `GET /v1/freshness` returns the latest FoodNoms data update recorded locally as `{lastUpdate}`, using an ISO 8601 UTC timestamp or `null` when the local event log is empty. It returns `503` with `DATABASE_UNAVAILABLE` when the sibling `logistics.db` cannot be read.
 
 Dates must be real `YYYY-MM-DD` ISO dates. Day and range endpoints intentionally exclude FoodNoms entries whose `day` is null; food history includes them because their timestamp remains meaningful. Entry BLOB UUIDs are normalized to lower-case canonical UUID strings. Nutrient values are optional numeric fields and per-entry nutrients are scaled to the logged quantity. Public `nutrients` objects never contain `calories`; calories are sibling fields on entries, totals, and food snapshots when present in the raw nutrient JSON.
 

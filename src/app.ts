@@ -71,6 +71,7 @@ const CollectionMetadata = Type.Partial(Type.Object({color: Type.String(), icon:
 const RecipeServing = Type.Partial(Type.Object({servings: Type.Number(), servingSizeUnit: Type.String(), totalServingSize: Type.Number()}, {additionalProperties: false}))
 const LibraryComponent = Type.Object({name: Type.String(), collectionSortIndex: Type.Union([Type.Integer(), Type.Null()]), quantity: Type.Optional(Type.Number()), baseAmount: Type.Optional(Type.Number()), baseUnit: Type.Union([Type.String(), Type.Null()]), measure: Type.Optional(Measure), calories: Type.Number(), nutrients: Nutrients}, {additionalProperties: false})
 const LibraryItem = Type.Object({collectionId: Type.Union([Type.String(), Type.Null()]), kind: Type.Union([Type.Literal('recipe'), Type.Literal('meal')]), type: Type.Integer(), name: Type.String(), createdAt: Type.Union([Type.String(), Type.Null()]), updatedAt: Type.Union([Type.String(), Type.Null()]), metadata: Type.Optional(CollectionMetadata), recipe: Type.Optional(RecipeServing), totals: Totals, servingTotals: Type.Optional(Totals), components: Type.Array(LibraryComponent)}, {additionalProperties: false})
+const FreshnessResponse = Type.Object({lastUpdate: Type.Union([Type.String({format: 'date-time', description: 'Latest FoodNoms data update recorded locally, expressed as an ISO 8601 UTC timestamp.'}), Type.Null({description: 'No local FoodNoms data update has been recorded.'})])}, {additionalProperties: false})
 const EmptyQuery = Type.Object({}, {additionalProperties: false})
 const MAX_RANGE_DAYS = 366
 const RangeTooLargeError = Type.Object({status: Type.Literal(400), code: Type.Literal('RANGE_TOO_LARGE'), message: Type.Literal('Date ranges may contain at most 366 days')}, {additionalProperties: false})
@@ -120,6 +121,13 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
     } catch { return reply.code(503).send({status: 503, code: 'DATABASE_UNAVAILABLE', message: 'FoodNoms database is unavailable'}) }
   })
   app.get('/openapi.json', {schema: {tags: ['system'], summary: 'Get the OpenAPI document', operationId: 'getOpenApi', querystring: EmptyQuery, response: {200: Type.Object({openapi: Type.Literal('3.1.2')}, {additionalProperties: true}), 400: ErrorResponse, 404: ErrorResponse}}}, async () => app.swagger())
+  app.get('/v1/freshness', {schema: {tags: ['system'], summary: 'Get FoodNoms data freshness', description: 'Returns when FoodNoms data was most recently updated locally.', operationId: 'getFreshness', querystring: EmptyQuery, response: {200: FreshnessResponse, 400: ErrorResponse, 503: ErrorResponse}}}, async (_request, reply) => {
+    try {
+      return {lastUpdate: getDatabase().freshness()}
+    } catch {
+      return reply.code(503).send({status: 503, code: 'DATABASE_UNAVAILABLE', message: 'FoodNoms logistics database is unavailable'})
+    }
+  })
 
   app.get<{Params: {date: string}}>('/v1/days/:date', {schema: {tags: ['days'], summary: 'Get a complete day summary', operationId: 'getDay', params: Type.Object({date: DateString}, {additionalProperties: false}), querystring: EmptyQuery, response: {200: DayResponse, 400: ErrorResponse, 500: ErrorResponse}}}, async (request, reply) => {
     if (!isIsoDate(request.params.date)) return reply.code(400).send({status: 400, code: 'VALIDATION_ERROR', message: 'date must be a real ISO date'})

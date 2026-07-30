@@ -13,6 +13,7 @@ SnackTrace v2 is a read-only Fastify HTTP service. It completely replaces the oc
 
 - Serve the authoritative OpenAPI 3.1.2 document at `/openapi.json` and database health at `/health`.
 - Put application routes under `/v1`, reject unknown request parameters, and return errors as `{status, code, message, issues?}`.
+- Return local FoodNoms freshness from `/v1/freshness` as `{lastUpdate}`. Read the latest `event.date` from the read-only sibling `logistics.db` associated with `FOODNOMS_DB_PATH`, serialize it as an ISO 8601 UTC timestamp, return `null` for an empty event table, and return `503` with code `DATABASE_UNAVAILABLE` when the companion database is unavailable.
 - Accept only real `YYYY-MM-DD` calendar dates. Day and range queries use FoodNoms' `day` value and exclude entries whose `day` is null.
 - Return a complete day from `/v1/days/:date` and section collections from `/entries`, `/meals`, and `/goals` using `{date, items}`.
 - Return an inclusive range of at most 366 days from `/v1/days?from=&to=` with `dayCount`, totals, averages, and per-day totals/goals. Range items do not embed meals or entries. Reject larger ranges with `{status: 400, code: "RANGE_TOO_LARGE", message: "Date ranges may contain at most 366 days"}`.
